@@ -1,0 +1,42 @@
+# Node
+server/node_modules/
+server/npm-debug.log*
+server/pnpm-debug.log*
+server/yarn-debug.log*
+server/yarn-error.log*
+
+# SQLite databases and WAL files
+server/database/*.db
+server/database/*.sqlite
+server/database/*.sqlite3
+server/database/*.db-shm
+server/database/*.db-wal
+
+# Environment files
+*.env
+*.env.local
+**/.env
+**/.env.local
+
+# Logs
+logs/
+*.log
+
+# Build/coverage (if added later)
+dist/
+build/
+coverage/
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Cache
+*.cache
+.cache/
+
+# Do NOT ignore dictionary files (required for AU validation)
+# server/dictionary/en_AU.aff
+# server/dictionary/en_AU.dic

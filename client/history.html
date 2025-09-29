@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game History - Scrabble Scorer PWA</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="View your Scrabble game history and detailed game boards">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Scrabble Scorer">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzRmNDZlNSIvPgo8cGF0aCBkPSJNOCA4SDE2VjE2SDhWOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNiA4SDI0VjE2SDE2VjhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNOCAxNkgxNlYyNEg4VjE2WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2IDE2SDI0VjI0SDE2VjE2WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+
+    <main id="app-container" class="w-full max-w-7xl mx-auto p-4">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-700">Game History</h1>
+                    <p class="text-gray-500 mt-1">View your completed Scrabble games</p>
+                </div>
+                <div class="flex gap-4">
+                    <a href="/" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition">
+                        New Game
+                    </a>
+                    <button id="refresh-btn" class="bg-gray-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition">
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p class="text-gray-500">Loading game history...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div class="text-6xl mb-4">🎲</div>
+            <h2 class="text-2xl font-bold text-gray-700 mb-2">No Games Yet</h2>
+            <p class="text-gray-500 mb-6">You haven't completed any games yet. Start playing to see your game history here!</p>
+            <a href="/" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition">
+                Start Your First Game
+            </a>
+        </div>
+
+        <!-- Games List -->
+        <div id="games-list" class="hidden space-y-4">
+            <!-- Game cards will be inserted here -->
+        </div>
+
+        <!-- Game Detail Modal -->
+        <div id="game-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-2xl shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center p-6 border-b">
+                    <div>
+                        <h2 id="modal-title" class="text-2xl font-bold text-gray-800">Game Details</h2>
+                        <p id="modal-subtitle" class="text-gray-500">Game played on...</p>
+                    </div>
+                    <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+                </div>
+                
+                <!-- Modal Content -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Game Board -->
+                        <div class="bg-gray-50 p-4 rounded-xl">
+                            <h3 class="text-lg font-bold mb-4 text-center">Final Board</h3>
+                            <div class="w-full max-w-[400px] mx-auto aspect-square">
+                                <div id="modal-board"></div>
+                            </div>
+                            <!-- Board Legend -->
+                            <div class="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-gray-600">
+                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm TWS mr-2"></span> Triple Word</div>
+                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm DWS mr-2"></span> Double Word</div>
+                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm TLS mr-2"></span> Triple Letter</div>
+                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm DLS mr-2"></span> Double Letter</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Game Stats and Turn History -->
+                        <div>
+                            <!-- Final Scores -->
+                            <div class="bg-gray-50 p-4 rounded-xl mb-6">
+                                <h3 class="text-lg font-bold mb-4">Final Scores</h3>
+                                <div id="modal-scores" class="space-y-2">
+                                    <!-- Player scores will be inserted here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Turn History -->
+                            <div class="bg-gray-50 p-4 rounded-xl">
+                                <h3 class="text-lg font-bold mb-4">Turn History</h3>
+                                <div id="modal-turn-history" class="max-h-64 overflow-y-auto">
+                                    <!-- Turn history will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript Modules -->
+    <script src="/js/api.js"></script>
+    <script src="/js/history.js"></script>
+</body>
+</html>
