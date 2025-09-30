@@ -1,3 +1,9 @@
+// Storage keys
+const ACTIVE_GAME_STORAGE_KEY = 'scrabble_current_game';
+const LAST_INTERRUPTED_STORAGE_KEY = 'scrabble_last_interrupted_game';
+const DICTIONARY_PREF_STORAGE_KEY = 'scrabble_dictionary_pref';
+const DICTIONARY_GAME_STORAGE_PREFIX = 'scrabble_dictionary_game_';
+
 // Main application controller
 class ScrabbleApp {
     constructor() {
@@ -5,6 +11,10 @@ class ScrabbleApp {
         this.currentWord = '';
         this.bingoActive = false;
         this.isSubmitting = false;
+        this.interruptInFlight = false;
+        this.currentGameLoaded = false;
+        this.dictionaryEnabled = false;
+        this.dictionaryToggleSyncing = false;
         
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
@@ -19,6 +29,9 @@ class ScrabbleApp {
         
         // Get DOM elements
         this.setupElements();
+        this.setupPlayerAutocomplete();
+        this.attachNameInputHandlers();
+        this.initializeDictionaryPreference();
         
         // Register service worker
         await this.registerServiceWorker();
@@ -26,8 +39,17 @@ class ScrabbleApp {
         // Setup event listeners
         this.setupEventListeners();
         
+        // Lifecycle listeners to preserve game state
+        window.addEventListener('beforeunload', () => this.markGameAsInterrupted());
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                this.markGameAsInterrupted();
+            }
+        });
+        
         // Check for existing game in URL or localStorage
         await this.checkForExistingGame();
+        this.updateResumeButtonVisibility();
         
         console.log('Scrabble App: Initialization complete');
     }
@@ -41,11 +63,20 @@ class ScrabbleApp {
         this.playerNameInputs = document.querySelectorAll('.player-name-input');
         this.startGameBtn = document.getElementById('start-game-btn');
         this.dictionaryToggle = document.getElementById('dictionary-toggle');
+        this.loadLatestActiveBtn = document.getElementById('load-latest-active-btn');
+        this.playerNameHelper = document.getElementById('player-name-helper');
         
         // Game screen elements
         this.playersScoresContainer = document.getElementById('players-scores');
+        this.runtimeDictionaryToggle = document.getElementById('dictionary-runtime-toggle');
+        this.dictionaryStatusLabel = document.getElementById('dictionary-status-label');
         this.turnIndicator = document.getElementById('turn-indicator');
         this.boardContainer = document.getElementById('scrabble-board');
+        this.scoringControls = document.getElementById('scoring-controls');
+        this.mobileSheetBackdrop = document.getElementById('mobile-sheet-backdrop');
+        this.gameActionsContainer = document.getElementById('game-actions-container');
+        this.gameActionsButton = document.getElementById('game-actions-button');
+        this.gameActionsMenu = document.getElementById('game-actions-menu');
         
         // Turn flow elements
         this.startPrompt = document.getElementById('start-prompt');
@@ -67,6 +98,8 @@ class ScrabbleApp {
         this.submitTurnBtn = document.getElementById('submit-turn-btn');
         this.undoBtn = document.getElementById('undo-btn');
         this.endGameBtn = document.getElementById('end-game-btn');
+        this.pauseGameBtn = document.getElementById('pause-game-btn');
+        this.abandonGameBtn = document.getElementById('abandon-game-btn');
         
         // Modals
         this.endGameModal = document.getElementById('end-game-modal');
@@ -82,6 +115,8 @@ class ScrabbleApp {
         this.validationMessage = document.getElementById('validation-message');
         this.validationCancelBtn = document.getElementById('validation-cancel-btn');
         this.validationProceedBtn = document.getElementById('validation-proceed-btn');
+
+        this.toggleGameActionsVisibility(false);
     }
 
     async registerServiceWorker() {
@@ -98,6 +133,19 @@ class ScrabbleApp {
     setupEventListeners() {
         // Setup screen
         this.startGameBtn.addEventListener('click', () => this.handleStartGame());
+        if (this.loadLatestActiveBtn) {
+            this.loadLatestActiveBtn.addEventListener('click', () => this.handleResumeLatestGame());
+        }
+        if (this.dictionaryToggle) {
+            this.dictionaryToggle.addEventListener('change', () => this.handleDictionaryToggleChange('setup'));
+        }
+        if (this.runtimeDictionaryToggle) {
+            this.runtimeDictionaryToggle.addEventListener('change', () => this.handleDictionaryToggleChange('runtime'));
+        }
+        if (this.mobileSheetBackdrop) {
+            this.mobileSheetBackdrop.addEventListener('click', () => this.closeMobileSheet());
+        }
+        this.registerMobileMediaListener();
         
         // Board interaction
         this.boardContainer.addEventListener('click', (e) => this.handleBoardClick(e));
@@ -116,6 +164,12 @@ class ScrabbleApp {
         this.submitTurnBtn.addEventListener('click', () => this.handleSubmitTurn());
         this.undoBtn.addEventListener('click', () => this.handleUndo());
         this.endGameBtn.addEventListener('click', () => this.handleEndGame());
+        if (this.pauseGameBtn) {
+            this.pauseGameBtn.addEventListener('click', () => this.handlePauseGame());
+        }
+        if (this.abandonGameBtn) {
+            this.abandonGameBtn.addEventListener('click', () => this.handleAbandonGame());
+        }
         
         // Modal buttons
         this.newGameBtn.addEventListener('click', () => this.handleNewGame());
@@ -136,6 +190,267 @@ class ScrabbleApp {
                 this.closeStatsModal();
             }
         });
+    }
+
+    setupPlayerAutocomplete() {
+        if (window.PlayerNameAutocomplete) {
+            this.playerAutocomplete = new window.PlayerNameAutocomplete(this.playerNameInputs, {
+                maxSuggestions: 20
+            });
+        }
+    }
+
+    attachNameInputHandlers() {
+        if (!this.playerNameInputs) return;
+        this.playerNameInputs.forEach((input) => {
+            input.addEventListener('blur', () => {
+                const canonical = this.canonicalizeName(input.value);
+                if (input.value !== canonical) {
+                    input.value = canonical;
+                }
+                this.refreshNameValidation();
+            });
+            input.addEventListener('input', () => {
+                this.refreshNameValidation();
+            });
+        });
+        this.refreshNameValidation();
+    }
+
+    initializeDictionaryPreference() {
+        const stored = localStorage.getItem(DICTIONARY_PREF_STORAGE_KEY);
+        this.dictionaryEnabled = stored === null ? false : stored === 'true';
+        this.syncDictionaryToggles();
+    }
+
+    syncDictionaryToggles() {
+        this.dictionaryToggleSyncing = true;
+        if (this.dictionaryToggle) {
+            this.dictionaryToggle.checked = this.dictionaryEnabled;
+        }
+        if (this.runtimeDictionaryToggle) {
+            this.runtimeDictionaryToggle.checked = this.dictionaryEnabled;
+        }
+        this.updateDictionaryStatusLabel();
+        this.dictionaryToggleSyncing = false;
+    }
+
+    updateDictionaryStatusLabel() {
+        if (!this.dictionaryStatusLabel) return;
+        if (this.dictionaryEnabled) {
+            this.dictionaryStatusLabel.textContent = 'On';
+            this.dictionaryStatusLabel.className = 'text-xs font-semibold uppercase tracking-wide text-emerald-500';
+        } else {
+            this.dictionaryStatusLabel.textContent = 'Off';
+            this.dictionaryStatusLabel.className = 'text-xs font-semibold uppercase tracking-wide text-gray-400';
+        }
+    }
+
+    handleDictionaryToggleChange(source) {
+        if (this.dictionaryToggleSyncing) return;
+        const newValue = source === 'runtime'
+            ? !!(this.runtimeDictionaryToggle && this.runtimeDictionaryToggle.checked)
+            : !!(this.dictionaryToggle && this.dictionaryToggle.checked);
+        this.dictionaryEnabled = newValue;
+
+        this.dictionaryToggleSyncing = true;
+        if (source === 'runtime' && this.dictionaryToggle) {
+            this.dictionaryToggle.checked = newValue;
+        }
+        if (source === 'setup' && this.runtimeDictionaryToggle) {
+            this.runtimeDictionaryToggle.checked = newValue;
+        }
+        this.dictionaryToggleSyncing = false;
+
+        this.updateDictionaryStatusLabel();
+        this.persistDictionaryPreference();
+    }
+
+    persistDictionaryPreference() {
+        localStorage.setItem(DICTIONARY_PREF_STORAGE_KEY, String(this.dictionaryEnabled));
+        if (window.gameState && window.gameState.gameId) {
+            localStorage.setItem(`${DICTIONARY_GAME_STORAGE_PREFIX}${window.gameState.gameId}`, String(this.dictionaryEnabled));
+        }
+    }
+
+    applyGameDictionaryPreference(gameId) {
+        let stored = null;
+        if (gameId) {
+            stored = localStorage.getItem(`${DICTIONARY_GAME_STORAGE_PREFIX}${gameId}`);
+        }
+        if (stored === null) {
+            stored = localStorage.getItem(DICTIONARY_PREF_STORAGE_KEY);
+        }
+        this.dictionaryEnabled = stored === null ? false : stored === 'true';
+        this.syncDictionaryToggles();
+        if (gameId) {
+            localStorage.setItem(`${DICTIONARY_GAME_STORAGE_PREFIX}${gameId}`, String(this.dictionaryEnabled));
+        }
+    }
+
+    toggleGameActionsVisibility(show) {
+        if (!this.gameActionsContainer) return;
+
+        if (!show && window.topbarMenus && window.topbarMenus.gameActions) {
+            window.topbarMenus.gameActions.close();
+        }
+
+        this.gameActionsContainer.classList.toggle('hidden', !show);
+
+        if (this.gameActionsButton) {
+            this.gameActionsButton.setAttribute('aria-hidden', String(!show));
+            this.gameActionsButton.tabIndex = show ? 0 : -1;
+        }
+
+        [this.pauseGameBtn, this.endGameBtn, this.abandonGameBtn].forEach((btn) => {
+            if (!btn) return;
+            btn.disabled = !show;
+            btn.classList.toggle('opacity-50', !show);
+            btn.classList.toggle('cursor-not-allowed', !show);
+        });
+    }
+
+    updateRuntimeDictionaryInteractivity(isReadOnly) {
+        if (!this.runtimeDictionaryToggle) return;
+        this.runtimeDictionaryToggle.disabled = isReadOnly;
+        this.runtimeDictionaryToggle.classList.toggle('opacity-50', isReadOnly);
+        this.runtimeDictionaryToggle.classList.toggle('cursor-not-allowed', isReadOnly);
+    }
+
+    canonicalizeName(name = '') {
+        return name
+            .trim()
+            .replace(/\s+/g, ' ')
+            .split(' ')
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(' ');
+    }
+
+    collectPlayerNames() {
+        const names = [];
+        this.playerNameInputs.forEach((input) => {
+            const canonical = this.canonicalizeName(input.value);
+            if (input.value !== canonical) {
+                input.value = canonical;
+            }
+            if (canonical.length > 0) {
+                names.push(canonical);
+            }
+        });
+        const lowerNames = names.map((name) => name.toLowerCase());
+        const hasDuplicate = new Set(lowerNames).size !== lowerNames.length;
+        return { names, hasDuplicate };
+    }
+
+    refreshNameValidation() {
+        const { names, hasDuplicate } = this.collectPlayerNames();
+        let message = '';
+        if (hasDuplicate) {
+            message = 'Player names must be unique (case-insensitive).';
+        } else if (names.length > 4) {
+            message = 'Enter no more than four player names.';
+        } else if (names.length > 0 && names.length < 2) {
+            message = 'Enter at least two player names to begin.';
+        }
+        if (this.playerNameHelper) {
+            this.playerNameHelper.textContent = message;
+            this.playerNameHelper.classList.toggle('hidden', message.length === 0);
+        }
+        const canStart = !hasDuplicate && names.length >= 2 && names.length <= 4;
+        if (this.startGameBtn) {
+            this.startGameBtn.disabled = !canStart;
+            this.startGameBtn.classList.toggle('opacity-50', !canStart);
+            this.startGameBtn.classList.toggle('cursor-not-allowed', !canStart);
+        }
+        return { names, hasDuplicate };
+    }
+
+    updateResumeButtonVisibility() {
+        if (!this.loadLatestActiveBtn) return;
+        const resumableGameId = this.getResumableGameId();
+        if (!this.currentGameLoaded && resumableGameId) {
+            this.loadLatestActiveBtn.classList.remove('hidden');
+        } else {
+            this.loadLatestActiveBtn.classList.add('hidden');
+        }
+    }
+
+    getResumableGameId() {
+        return localStorage.getItem(ACTIVE_GAME_STORAGE_KEY) || localStorage.getItem(LAST_INTERRUPTED_STORAGE_KEY);
+    }
+
+    clearStoredGameRefs() {
+        localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY);
+        localStorage.removeItem(LAST_INTERRUPTED_STORAGE_KEY);
+    }
+
+    async handleResumeLatestGame() {
+        const gameId = this.getResumableGameId();
+        if (!gameId) {
+            this.updateResumeButtonVisibility();
+            return;
+        }
+        try {
+            if (this.loadLatestActiveBtn) {
+                this.setLoading(this.loadLatestActiveBtn, true);
+            }
+            const gameData = await window.scrabbleAPI.getGame(gameId);
+            if (gameData.status === 'interrupted') {
+                await window.scrabbleAPI.updateGameStatus(gameData.id, 'active');
+                gameData.status = 'active';
+            }
+            await this.loadGame(gameData, false);
+        } catch (error) {
+            console.error('Failed to resume game:', error);
+            this.showError('Unable to resume the saved game. It may have been deleted.');
+            this.clearStoredGameRefs();
+        } finally {
+            if (this.loadLatestActiveBtn) {
+                this.setLoading(this.loadLatestActiveBtn, false);
+            }
+            this.updateResumeButtonVisibility();
+        }
+    }
+
+    async handlePauseGame() {
+        if (!window.gameState.gameId || this.isReadOnly) return;
+        try {
+            this.setLoading(this.pauseGameBtn, true);
+            await window.scrabbleAPI.updateGameStatus(window.gameState.gameId, 'interrupted');
+            window.gameState.isGameActive = false;
+            localStorage.setItem(LAST_INTERRUPTED_STORAGE_KEY, window.gameState.gameId.toString());
+            localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY);
+            alert('Game paused. You can resume it later from the setup screen.');
+            this.handleNewGame();
+        } catch (error) {
+            console.error('Failed to pause game:', error);
+            this.showError('Failed to pause the game. Please try again.');
+        } finally {
+            this.setLoading(this.pauseGameBtn, false);
+            this.updateResumeButtonVisibility();
+        }
+    }
+
+    async handleAbandonGame() {
+        if (!window.gameState.gameId || this.isReadOnly) return;
+        const confirmed = confirm('Are you sure you want to abandon this game? This will permanently delete all progress.');
+        if (!confirmed) return;
+
+        try {
+            this.setLoading(this.abandonGameBtn, true);
+            await window.scrabbleAPI.deleteGame(window.gameState.gameId);
+            window.gameState.isGameActive = false;
+            this.clearStoredGameRefs();
+            alert('Game abandoned and removed from history.');
+            this.handleNewGame();
+        } catch (error) {
+            console.error('Failed to abandon game:', error);
+            this.showError('Failed to abandon the game. Please try again.');
+        } finally {
+            this.setLoading(this.abandonGameBtn, false);
+            this.updateResumeButtonVisibility();
+        }
     }
 
     async checkForExistingGame() {
@@ -178,12 +493,9 @@ class ScrabbleApp {
     }
 
     async handleStartGame() {
-        const names = Array.from(this.playerNameInputs)
-            .map(input => input.value.trim())
-            .filter(name => name !== '');
+        const { names, hasDuplicate } = this.refreshNameValidation();
         
-        if (names.length < 2 || names.length > 4) {
-            this.showError('Please enter between 2 and 4 player names.');
+        if (hasDuplicate || names.length < 2 || names.length > 4) {
             return;
         }
         
@@ -211,6 +523,16 @@ class ScrabbleApp {
     async loadGame(gameData, isReadOnly = false) {
         window.gameState.initializeGame(gameData);
         this.isReadOnly = isReadOnly;
+        this.currentGameLoaded = !isReadOnly;
+        this.applyGameDictionaryPreference(gameData.id);
+        
+        if (!isReadOnly) {
+            localStorage.setItem(ACTIVE_GAME_STORAGE_KEY, gameData.id.toString());
+            localStorage.removeItem(LAST_INTERRUPTED_STORAGE_KEY);
+        } else {
+            this.clearStoredGameRefs();
+        }
+
         this.switchToGameScreen();
         this.renderBoard();
         this.updatePlayerCards();
@@ -218,10 +540,16 @@ class ScrabbleApp {
         this.setupReadOnlyMode(isReadOnly);
         if (!isReadOnly) {
             this.resetTurn();
+        } else {
+            this.closeMobileSheet();
         }
+        this.updateResumeButtonVisibility();
     }
 
     setupReadOnlyMode(isReadOnly) {
+        this.updateRuntimeDictionaryInteractivity(isReadOnly);
+        this.toggleGameActionsVisibility(!isReadOnly);
+
         if (isReadOnly) {
             // Hide interactive elements
             this.startPrompt.classList.add('hidden');
@@ -230,6 +558,8 @@ class ScrabbleApp {
             this.submitTurnBtn.classList.add('hidden');
             this.undoBtn.classList.add('hidden');
             this.endGameBtn.classList.add('hidden');
+            if (this.pauseGameBtn) this.pauseGameBtn.classList.add('hidden');
+            if (this.abandonGameBtn) this.abandonGameBtn.classList.add('hidden');
             
             // Show read-only message
             const readOnlyMessage = document.createElement('div');
@@ -267,6 +597,14 @@ class ScrabbleApp {
             this.submitTurnBtn.classList.remove('hidden');
             this.undoBtn.classList.remove('hidden');
             this.endGameBtn.classList.remove('hidden');
+            if (this.pauseGameBtn) {
+                this.pauseGameBtn.classList.remove('hidden', 'loading');
+                this.pauseGameBtn.disabled = false;
+            }
+            if (this.abandonGameBtn) {
+                this.abandonGameBtn.classList.remove('hidden', 'loading');
+                this.abandonGameBtn.disabled = false;
+            }
         }
     }
 
@@ -305,6 +643,15 @@ class ScrabbleApp {
     handleBoardClick(e) {
         const cell = e.target.closest('.board-cell');
         if (!cell) return;
+        
+        // In mobile view, if sheet is already open, close it and don't process the click
+        if (!this.isReadOnly && this.isMobileLayout()) {
+            if (this.isMobileSheetOpen()) {
+                this.closeMobileSheet();
+                return; // Don't process cell selection when closing the sheet
+            }
+            this.openMobileSheet();
+        }
         
         // Clear previous selection
         document.querySelectorAll('.board-cell.selected').forEach(c => c.classList.remove('selected'));
@@ -517,7 +864,7 @@ class ScrabbleApp {
             }
             
             // Check if dictionary validation is enabled
-            const dictionaryEnabled = this.dictionaryToggle && this.dictionaryToggle.checked;
+            const dictionaryEnabled = this.dictionaryEnabled;
             
             if (dictionaryEnabled) {
                 // Validate words with dictionary
@@ -636,6 +983,9 @@ class ScrabbleApp {
         try {
             // Mark game as properly finished with winner
             await window.scrabbleAPI.finishGame(window.gameState.gameId, winner.id);
+            window.gameState.isGameActive = false;
+            this.clearStoredGameRefs();
+            this.updateResumeButtonVisibility();
             
             this.finalScoresContainer.innerHTML = `
                 <p class="text-xl mb-4">The winner is <span class="font-bold text-indigo-600">${winner.name}</span> with ${winner.score} points!</p>
@@ -654,16 +1004,80 @@ class ScrabbleApp {
 
     // Mark game as interrupted when user leaves without properly ending
     async markGameAsInterrupted() {
-        if (window.gameState.gameId && !this.isReadOnly) {
-            try {
-                await window.scrabbleAPI.request(`/games/${window.gameState.gameId}/status`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ status: 'interrupted' })
-                });
-            } catch (error) {
-                console.error('Failed to mark game as interrupted:', error);
-            }
+        if (this.interruptInFlight || this.isReadOnly || !window.gameState.gameId) {
+            return;
         }
+        if (window.gameState.isGameActive === false) {
+            return;
+        }
+        this.interruptInFlight = true;
+        this.closeMobileSheet();
+        const gameId = window.gameState.gameId;
+        const payload = JSON.stringify({ status: 'interrupted' });
+        const url = `${window.location.origin}/api/games/${gameId}/status`;
+
+        try {
+            let delivered = false;
+            if (navigator.sendBeacon) {
+                const blob = new Blob([payload], { type: 'application/json' });
+                delivered = navigator.sendBeacon(url, blob);
+            }
+            if (!delivered) {
+                await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                    keepalive: true
+                });
+            }
+            window.gameState.isGameActive = false;
+            localStorage.setItem(LAST_INTERRUPTED_STORAGE_KEY, gameId.toString());
+            localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY);
+        } catch (error) {
+            console.error('Failed to mark game as interrupted:', error);
+        } finally {
+            this.interruptInFlight = false;
+            this.updateResumeButtonVisibility();
+        }
+    }
+
+    registerMobileMediaListener() {
+        if (this.mobileMediaQueryListenerRegistered) return;
+        const query = window.matchMedia('(max-width: 640px)');
+        query.addEventListener('change', () => {
+            if (!query.matches) {
+                this.closeMobileSheet();
+            }
+        });
+        this.mobileMediaQueryListenerRegistered = true;
+    }
+
+    isMobileLayout() {
+        return window.matchMedia('(max-width: 640px)').matches;
+    }
+
+    isMobileSheetOpen() {
+        return document.body.classList.contains('mobile-game-sheet-open');
+    }
+
+    openMobileSheet() {
+        document.body.classList.add('mobile-game-sheet-open');
+        if (this.mobileSheetBackdrop) {
+            this.mobileSheetBackdrop.classList.remove('hidden');
+        }
+    }
+
+    closeMobileSheet() {
+        document.body.classList.remove('mobile-game-sheet-open');
+        if (this.mobileSheetBackdrop) {
+            this.mobileSheetBackdrop.classList.add('hidden');
+        }
+    }
+
+    handleGameScreenClick(event) {
+        if (!this.isMobileLayout() || !this.isMobileSheetOpen()) return;
+        if (this.scoringControls && this.scoringControls.contains(event.target)) return;
+        this.closeMobileSheet();
     }
 
     handleNewGame() {
@@ -682,6 +1096,13 @@ class ScrabbleApp {
         const url = new URL(window.location);
         url.searchParams.delete('game');
         window.history.pushState({}, '', url);
+
+        this.currentGameLoaded = false;
+        this.refreshNameValidation();
+        this.updateResumeButtonVisibility();
+        this.applyGameDictionaryPreference(null);
+        this.toggleGameActionsVisibility(false);
+        this.closeMobileSheet();
     }
 
     resetTurn() {
@@ -704,6 +1125,10 @@ class ScrabbleApp {
         
         this.updateTurnState();
         this.undoBtn.disabled = window.gameState.turnHistory.length === 0;
+
+        if (this.isMobileLayout()) {
+            this.closeMobileSheet();
+        }
     }
 
     updatePlayerCards() {
@@ -850,6 +1275,7 @@ class ScrabbleApp {
 
     // Utility methods
     setLoading(element, loading) {
+        if (!element) return;
         if (loading) {
             element.disabled = true;
             element.classList.add('loading');

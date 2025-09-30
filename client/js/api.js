@@ -163,6 +163,14 @@ class ScrabbleAPI {
         return data;
     }
 
+    async searchPlayers(query, limit = 15) {
+        const params = new URLSearchParams();
+        if (query) params.set('query', query);
+        if (limit) params.set('limit', limit.toString());
+
+        return await this.request(`/players?${params.toString()}`);
+    }
+
     async submitTurn(gameId, turnData) {
         const data = await this.request(`/games/${gameId}/turns`, {
             method: 'POST',
@@ -176,17 +184,25 @@ class ScrabbleAPI {
         return data;
     }
 
-    async finishGame(gameId, winnerId) {
+    async updateGameStatus(gameId, status, winnerId = null) {
+        const payload = { status };
+        if (winnerId) {
+            payload.winnerId = winnerId;
+        }
+
         const data = await this.request(`/games/${gameId}/status`, {
             method: 'PUT',
-            body: JSON.stringify({ status: 'finished', winnerId })
+            body: JSON.stringify(payload)
         });
-        
-        // Invalidate caches
+
         localStorage.removeItem(`scrabble_cache__games_${gameId}`);
         localStorage.removeItem('scrabble_cache__games');
-        
+
         return data;
+    }
+
+    async finishGame(gameId, winnerId) {
+        return await this.updateGameStatus(gameId, 'finished', winnerId);
     }
 
     async deleteGame(gameId) {
@@ -211,6 +227,42 @@ class ScrabbleAPI {
         localStorage.removeItem('scrabble_cache__games');
         
         return data;
+    }
+
+    // Dictionary management
+    async getDictionaries() {
+        return await this.request('/dictionaries');
+    }
+
+    async getDictionaryCatalog() {
+        return await this.request('/dictionaries/catalog');
+    }
+
+    async installDictionary(locale) {
+        return await this.request('/dictionaries', {
+            method: 'POST',
+            body: JSON.stringify({ locale })
+        });
+    }
+
+    async refreshDictionary(locale) {
+        return await this.request(`/dictionaries/${encodeURIComponent(locale)}`, {
+            method: 'PUT',
+            body: JSON.stringify({ action: 'refresh' })
+        });
+    }
+
+    async activateDictionary(locale) {
+        return await this.request(`/dictionaries/${encodeURIComponent(locale)}`, {
+            method: 'PUT',
+            body: JSON.stringify({ action: 'activate' })
+        });
+    }
+
+    async deleteDictionary(locale) {
+        return await this.request(`/dictionaries/${encodeURIComponent(locale)}`, {
+            method: 'DELETE'
+        });
     }
 
     // Validation API methods

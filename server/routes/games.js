@@ -3,6 +3,16 @@ const { getDatabase } = require('../database/init');
 
 const router = express.Router();
 
+function canonicalizePlayerName(name) {
+    return name
+        .trim()
+        .replace(/\s+/g, ' ')
+        .split(' ')
+        .filter(Boolean)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+}
+
 // GET /api/games - Get all games (completed and interrupted games for history)
 router.get('/', (req, res) => {
     try {
@@ -24,7 +34,6 @@ router.get('/', (req, res) => {
                  ORDER BY gp2.turn_order) as player_names
             FROM games g
             LEFT JOIN players w ON g.winner_id = w.id
-            WHERE g.status IN ('finished', 'interrupted')
             ORDER BY g.created_at DESC
         `).all();
         
@@ -103,16 +112,38 @@ router.post('/', (req, res) => {
         }
         
         const db = getDatabase();
+
+        const normalizedNames = playerNames.map(name => canonicalizePlayerName(name));
+        const seenNames = new Set();
+        for (const normalized of normalizedNames) {
+            const key = normalized.toLowerCase();
+            if (seenNames.has(key)) {
+                db.close();
+                return res.status(400).json({ error: 'Player names must be unique (case-insensitive).' });
+            }
+            seenNames.add(key);
+        }
         
         db.transaction(() => {
             // Create or get players
             const playerIds = [];
-            const insertPlayer = db.prepare('INSERT OR IGNORE INTO players (name) VALUES (?)');
-            const getPlayer = db.prepare('SELECT id FROM players WHERE name = ?');
+            const insertPlayer = db.prepare('INSERT INTO players (name) VALUES (?)');
+            const getPlayerByLower = db.prepare('SELECT id, name FROM players WHERE LOWER(name) = LOWER(?)');
             
-            playerNames.forEach(name => {
-                insertPlayer.run(name.trim());
-                const player = getPlayer.get(name.trim());
+            normalizedNames.forEach(name => {
+                let player = getPlayerByLower.get(name);
+                
+                if (!player) {
+                    try {
+                        insertPlayer.run(name);
+                    } catch (error) {
+                        if (error.code !== 'SQLITE_CONSTRAINT_UNIQUE') {
+                            throw error;
+                        }
+                    }
+                    player = getPlayerByLower.get(name);
+                }
+                
                 playerIds.push(player.id);
             });
             

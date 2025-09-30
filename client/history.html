@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game History - Scrabble Scorer PWA</title>
+    <title>Game History - Scrabble Keeper</title>
     
     <!-- PWA Meta Tags -->
-    <meta name="description" content="View your Scrabble game history and detailed game boards">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="description" content="Review previous Scrabble Keeper games, resume paused sessions, or revisit final boards and scores.">
+    <meta name="theme-color" content="#1f2937">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Scrabble Scorer">
+    <meta name="apple-mobile-web-app-title" content="Scrabble Keeper">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzRmNDZlNSIvPgo8cGF0aCBkPSJNOCA4SDE2VjE2SDhWOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNiA4SDI0VjE2SDE2VjhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNOCAxNkgxNlYyNEg4VjE2WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2IDE2SDI0VjI0SDE2VjE2WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzJmMzhhZCIvPgo8cGF0aCBkPSJNNyA4SDE1VjE2SDdWOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyA4SDI1VjE2SDE3VjhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNyAxNkgxNVMjMjQiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyAxNkgzNVYyNEgxN1YxNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==">
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -28,20 +28,45 @@
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen">
+    <header class="sticky top-0 z-40 backdrop-blur bg-white/90 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+            <a href="/" class="text-lg font-semibold text-indigo-600 tracking-tight">Scrabble Keeper</a>
+            <div class="relative">
+                <button id="topbar-menu-button" class="w-9 h-9 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-haspopup="true" aria-expanded="false">
+                    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
+                    </svg>
+                    <span class="sr-only">Open menu</span>
+                </button>
+                <nav id="topbar-menu" class="hidden absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
+                    <a href="/" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-xl">
+                        New Game
+                        <span class="text-xs text-gray-400">⌘ N</span>
+                    </a>
+                    <a href="/history.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        History
+                    </a>
+                    <a href="/admin.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-xl">
+                        Admin
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
 
-    <main id="app-container" class="w-full max-w-7xl mx-auto p-4">
+    <main id="app-container" class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Header -->
         <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-700">Game History</h1>
-                    <p class="text-gray-500 mt-1">View your completed Scrabble games</p>
+                    <h1 class="text-3xl font-bold text-gray-800">Game History</h1>
+                    <p class="text-gray-500 mt-1">Resume paused games or revisit completed matches.</p>
                 </div>
-                <div class="flex gap-4">
-                    <a href="/" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition">
-                        New Game
-                    </a>
-                    <button id="refresh-btn" class="bg-gray-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition">
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <button id="resume-latest-btn" class="hidden w-full sm:w-auto bg-amber-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-4 focus:ring-amber-200 transition">
+                        Resume Latest Paused Game
+                    </button>
+                    <button id="refresh-btn" class="w-full sm:w-auto bg-gray-900 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
                         Refresh
                     </button>
                 </div>
@@ -125,6 +150,7 @@
 
     <!-- JavaScript Modules -->
     <script src="/js/api.js"></script>
+    <script src="/js/topbar.js"></script>
     <script src="/js/history.js"></script>
 </body>
 </html>

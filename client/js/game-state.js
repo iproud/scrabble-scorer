@@ -202,10 +202,10 @@ class GameState {
             return { valid: false, error: "You must place at least one new tile." };
         }
         
-        const isFirstTurn = this.turnHistory.length === 0;
-        if (isFirstTurn) {
-            // First word must cover center star
-            let wordPath = [];
+        const hasExistingTiles = this.boardState.some(row => row.some(cell => cell !== null));
+        if (!hasExistingTiles) {
+            // When the board is empty, the word must cover the center star
+            const wordPath = [];
             for (let i = 0; i < word.length; i++) {
                 wordPath.push({
                     row: direction === 'across' ? startRow : startRow + i,
@@ -217,8 +217,8 @@ class GameState {
             }
         } else {
             // Subsequent words must connect to existing tiles
-            let usesExistingTile = word.length > newPlacements.length;
-            let isAdjacentToExisting = newPlacements.some(p => 
+            const usesExistingTile = word.length > newPlacements.length;
+            const isAdjacentToExisting = newPlacements.some(p => 
                 (p.row > 0 && this.boardState[p.row - 1][p.col]) || 
                 (p.row < 14 && this.boardState[p.row + 1][p.col]) ||
                 (p.col > 0 && this.boardState[p.row][p.col - 1]) || 

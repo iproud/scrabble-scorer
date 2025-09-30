@@ -35,6 +35,7 @@ class GameHistoryApp {
         
         // Buttons
         this.refreshBtn = document.getElementById('refresh-btn');
+        this.resumeLatestBtn = document.getElementById('resume-latest-btn');
         
         // Modal elements
         this.gameDetailModal = document.getElementById('game-detail-modal');
@@ -49,6 +50,9 @@ class GameHistoryApp {
     setupEventListeners() {
         // Refresh button
         this.refreshBtn.addEventListener('click', () => this.loadGames());
+        if (this.resumeLatestBtn) {
+            this.resumeLatestBtn.addEventListener('click', () => this.resumeLatestPausedGame());
+        }
         
         // Modal close
         this.closeModalBtn.addEventListener('click', () => this.closeModal());
@@ -80,6 +84,7 @@ class GameHistoryApp {
                 this.renderGamesList();
             }
             
+            this.updateResumeButtonVisibility();
         } catch (error) {
             console.error('Failed to load games:', error);
             this.showError('Failed to load game history. Please try again.');
@@ -115,94 +120,145 @@ class GameHistoryApp {
     }
 
     createGameCard(game) {
-        // Format date/time for GMT+10 (Melbourne/Sydney)
         const gameDate = new Date(game.created_at);
         const date = gameDate.toLocaleDateString('en-AU', { timeZone: 'Australia/Melbourne' });
-        const time = gameDate.toLocaleTimeString('en-AU', { 
+        const time = gameDate.toLocaleTimeString('en-AU', {
             timeZone: 'Australia/Melbourne',
-            hour: '2-digit', 
+            hour: '2-digit',
             minute: '2-digit',
             hour12: true
         });
-        
-        // Fix duplicated player names - split and deduplicate
-        const playerNames = game.player_names ? 
-            [...new Set(game.player_names.split(',').map(name => name.trim()))] : 
-            ['Unknown Players'];
-        const winnerName = game.winner_name || (game.status === 'interrupted' ? 'Game interrupted' : 'No winner');
-        
-        // Determine status styling
-        const isInterrupted = game.status === 'interrupted';
-        const statusClass = isInterrupted ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
-        const statusText = isInterrupted ? 'Interrupted' : 'Completed';
-        
+
+        const playerNames = game.player_names
+            ? [...new Set(game.player_names.split(',').map((name) => name.trim()))]
+            : ['Unknown Players'];
+
+        const statusBadge = this.buildStatusBadge(game.status);
+        const winnerText = game.winner_name || (game.status === 'interrupted'
+            ? 'Game paused'
+            : 'No winner yet');
+
+        let primaryActionHtml = '';
+        if (game.status === 'active') {
+            primaryActionHtml = `
+                <button onclick="window.gameHistoryApp.navigateToGame(${game.id}, event)"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg shadow-sm hover:bg-indigo-700 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M13.5 4.5L21 12l-7.5 7.5M21 12H3" />
+                    </svg>
+                    Return to Game
+                </button>
+            `;
+        } else if (game.status === 'interrupted') {
+            primaryActionHtml = `
+                <button onclick="window.gameHistoryApp.reinstateGame(${game.id}, event)"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white font-semibold rounded-lg shadow-sm hover:bg-green-700 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M12 5v14m7-7H5" />
+                    </svg>
+                    Resume Game
+                </button>
+            `;
+        } else {
+            primaryActionHtml = `
+                <button onclick="window.gameHistoryApp.showGameDetail(${game.id}, event)"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 text-white font-semibold rounded-lg shadow-sm hover:bg-slate-900 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M12 6v12m6-6H6" />
+                    </svg>
+                    View Summary
+                </button>
+            `;
+        }
+
+        const abandonLabel = game.status === 'finished' ? 'Remove from History' : 'Abandon Game';
+
         return `
-            <div class="game-card bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow" data-game-id="${game.id}">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 cursor-pointer" onclick="window.gameHistoryApp.showGameDetail(${game.id})">
-                        <div class="flex items-center gap-4 mb-2">
-                            <h3 class="text-xl font-bold text-gray-800">Game #${game.id}</h3>
-                            <span class="px-3 py-1 ${statusClass} rounded-full text-sm font-medium">
-                                ${statusText}
+            <div class="game-card bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow" data-game-id="${game.id}">
+                <div class="flex flex-col gap-6 md:flex-row md:items-stretch md:gap-8">
+                    <div class="flex-1 space-y-4 cursor-pointer" onclick="window.gameHistoryApp.showGameDetail(${game.id}, event)">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <h3 class="text-xl font-bold text-gray-900">Game #${game.id}</h3>
+                            ${statusBadge}
+                            <span class="text-xs font-medium uppercase tracking-wide ${game.status === 'active'
+                                ? 'text-indigo-500'
+                                : game.status === 'interrupted'
+                                    ? 'text-amber-500'
+                                    : 'text-emerald-500'}">
+                                ${game.status === 'active' ? 'In Progress'
+                                    : game.status === 'interrupted' ? 'Paused'
+                                    : 'Completed'}
                             </span>
                         </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                            <div>
-                                <span class="font-medium">Players:</span>
-                                <div class="text-gray-800">${playerNames.join(', ')}</div>
+
+                        <div class="flex flex-wrap gap-6 text-sm text-gray-600">
+                            <div class="space-y-1">
+                                <span class="block font-medium text-gray-500">Players</span>
+                                <div class="text-base text-gray-800">${playerNames.join(', ')}</div>
                             </div>
-                            
-                            <div>
-                                <span class="font-medium">${isInterrupted ? 'Status:' : 'Winner:'}</span>
-                                <div class="${isInterrupted ? 'text-orange-600' : 'text-green-600'} font-semibold">${winnerName}</div>
+                            <div class="space-y-1">
+                                <span class="block font-medium text-gray-500">${game.status === 'finished' ? 'Winner' : 'Status'}</span>
+                                <div class="${game.status === 'finished' ? 'text-green-600' : game.status === 'interrupted' ? 'text-amber-600' : 'text-slate-600'} font-semibold">
+                                    ${winnerText}
+                                </div>
                             </div>
-                            
-                            <div>
-                                <span class="font-medium">Played:</span>
-                                <div class="text-gray-800">${date} at ${time}</div>
+                            <div class="space-y-1">
+                                <span class="block font-medium text-gray-500">Started</span>
+                                <div class="text-base text-gray-800">${date} · ${time}</div>
                             </div>
                         </div>
-                        
-                        <div class="mt-3 flex items-center gap-4 text-sm text-gray-500">
-                            <span>🎯 ${game.total_turns || 0} turns</span>
-                            <span>🏆 Highest: ${game.highest_score || 0} points</span>
+
+                        <div class="flex flex-wrap gap-4 text-sm text-gray-500">
+                            <div class="inline-flex items-center gap-2">
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 font-semibold">${(game.total_turns || 0).toString().padStart(2, '0')}</span>
+                                <span>Total turns</span>
+                            </div>
+                            <div class="inline-flex items-center gap-2">
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 font-semibold">${game.highest_score || 0}</span>
+                                <span>High score</span>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="ml-4 flex flex-col items-end gap-2">
-                        <div class="text-right">
-                            <div class="text-2xl font-bold text-indigo-600">${game.highest_score || 0}</div>
-                            <div class="text-sm text-gray-500">High Score</div>
-                        </div>
-                        
-                        <div class="flex gap-2">
-                            ${isInterrupted ? `
-                                <button onclick="window.gameHistoryApp.reinstateGame(${game.id}, event)" 
-                                        class="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition" 
-                                        title="Resume Game">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m6-10V4a2 2 0 00-2-2H5a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2V4z"></path>
-                                    </svg>
-                                </button>
-                            ` : ''}
-                            <button onclick="window.gameHistoryApp.deleteGame(${game.id}, event)" 
-                                    class="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition" 
-                                    title="Delete Game">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
-                        </div>
+
+                    <div class="md:w-60 flex flex-col gap-2">
+                        ${primaryActionHtml}
+                        <button onclick="window.gameHistoryApp.deleteGame(${game.id}, event)"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-red-600 font-semibold rounded-lg border border-red-200 hover:border-red-300 hover:bg-red-50 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                      d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            ${abandonLabel}
+                        </button>
                     </div>
                 </div>
             </div>
         `;
     }
 
-    async showGameDetail(gameId) {
-        // Navigate to the main game interface in read-only mode
+    async showGameDetail(gameId, event) {
+        event?.stopPropagation();
         window.location.href = `/?game=${gameId}&view=history`;
+    }
+
+    navigateToGame(gameId, event) {
+        event?.stopPropagation();
+        window.location.href = `/?game=${gameId}`;
+    }
+
+    buildStatusBadge(status) {
+        switch (status) {
+            case 'active':
+                return '<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"><span class="w-2 h-2 rounded-full bg-blue-500"></span>Active</span>';
+            case 'interrupted':
+                return '<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800"><span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>Paused</span>';
+            case 'finished':
+            default:
+                return '<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"><span class="w-2 h-2 rounded-full bg-green-500"></span>Completed</span>';
+        }
     }
 
     renderGameDetail(game) {
@@ -362,8 +418,18 @@ class GameHistoryApp {
         }
     }
 
+    async resumeLatestPausedGame() {
+        const interruptedGame = this.games.find((game) => game.status === 'interrupted');
+        if (!interruptedGame) {
+            alert('No paused games available to resume.');
+            this.updateResumeButtonVisibility();
+            return;
+        }
+        this.reinstateGame(interruptedGame.id);
+    }
+
     async reinstateGame(gameId, event) {
-        event.stopPropagation(); // Prevent card click
+        event?.stopPropagation();
         
         const game = this.games.find(g => g.id === gameId);
         if (!game) return;
@@ -385,6 +451,15 @@ class GameHistoryApp {
             console.error('Failed to reinstate game:', error);
             this.showError('Failed to reactivate game. Please try again.');
         }
+    }
+
+    updateResumeButtonVisibility() {
+        if (!this.resumeLatestBtn) return;
+        const hasInterruptedGame = Array.isArray(this.games) && this.games.some(game => game.status === 'interrupted');
+        this.resumeLatestBtn.classList.toggle('hidden', !hasInterruptedGame);
+        this.resumeLatestBtn.disabled = !hasInterruptedGame;
+        this.resumeLatestBtn.classList.toggle('opacity-40', !hasInterruptedGame);
+        this.resumeLatestBtn.classList.toggle('cursor-not-allowed', !hasInterruptedGame);
     }
 
     showError(message) {

@@ -1,6 +1,6 @@
-# Scrabble Scorer PWA
+# Scrabble Keeper PWA
 
-A full-featured Progressive Web App for scoring Scrabble games with persistent storage, offline support, and installable native app experience.
+A polished companion Progressive Web App for tracking in-person Scrabble games with pause/resume, player history, dictionary validation, persistent storage, offline support, and installable native app experience.
 
 ## 🚀 Quick Start (Home Server: 192.168.86.10:3037)
 
@@ -29,21 +29,23 @@ pm2 startup
 
 ## 📱 Access Your App
 
-Once running, access the Scrabble Scorer PWA at:
+Once running, access Scrabble Keeper at:
 - **http://192.168.86.10:3037**
 
 The app can be installed on any device for a native app experience!
 
 ## ✨ Features
 
-- **🎯 Interactive Scrabble Board**: Full 15x15 board with bonus squares
-- **🔢 Automatic Scoring**: Calculates word scores with bonuses and cross-words
-- **👥 Multi-Player**: Support for 2-4 players with turn management
-- **💾 Persistent Storage**: All games saved to SQLite database
-- **📱 PWA**: Installable on mobile and desktop devices
-- **🔄 Offline Support**: Works offline with automatic sync when online
-- **📊 Game Statistics**: Track scores, turns, and game history
-- **🎨 Modern UI**: Clean, responsive design with Tailwind CSS
+- **🎯 Interactive Scrabble Board**: Full 15x15 board with bonus squares and live scoring preview
+- **🔢 Automatic Scoring**: Calculates word scores, cross words, and optional bingo bonuses
+- **⏱ Pause & Resume**: Park a live game and restart it later from the history screen
+- **🗑 Abandon Games**: Delete unfinished games you no longer plan to continue
+- **👤 Smart Player Entry**: Autocomplete suggestions with canonical casing to avoid duplicate profiles
+- **📚 Dictionary Validation**: Optional word validation backed by LibreOffice dictionaries
+- **🛠 Dictionary Admin**: Install, refresh, activate, or remove Roman alphabet dictionaries from LibreOffice/dictionaries
+- **💾 Persistent Storage**: All games saved to SQLite with history and statistics
+- **📱 PWA + Offline Support**: Installable on mobile/desktop with caching and background sync
+- **🎨 Modern UI**: Slim persistent top bar, responsive layouts, Tailwind CSS styling
 
 ## 🏗️ Architecture
 
@@ -64,12 +66,17 @@ The app can be installed on any device for a native app experience!
 ```
 scrabble-scorer/
 ├── client/                 # Frontend PWA
-│   ├── index.html         # Main game interface
+│   ├── index.html         # Main game interface (new game + live scoring)
+│   ├── history.html       # Game history with resume/abandon controls
+│   ├── admin.html         # Dictionary management dashboard
 │   ├── css/styles.css     # Styles and animations
 │   ├── js/
-│   │   ├── api.js         # API communication
-│   │   ├── game-state.js  # Game logic
-│   │   └── app.js         # Main controller
+│   │   ├── api.js         # API communication & offline queueing
+│   │   ├── game-state.js  # Core game logic/state helpers
+│   │   ├── app.js         # Main controller & pause/resume handling
+│   │   ├── history.js     # History screen controller
+│   │   ├── admin.js       # Dictionary admin controller
+│   │   └── player-autocomplete.js # Client-side autocomplete
 │   ├── manifest.json      # PWA configuration
 │   └── service-worker.js  # Offline functionality
 ├── server/                # Backend API
@@ -102,7 +109,15 @@ npm start
 - `GET /api/games` - List completed games
 - `GET /api/games/:id` - Get game details
 - `POST /api/games/:id/turns` - Submit turn
-- `PUT /api/games/:id/status` - Update game status
+- `PUT /api/games/:id/status` - Update game status (active/finished/interrupted)
+- `PUT /api/games/:id/reinstate` - Resume an interrupted game
+- `DELETE /api/games/:id` - Remove a game and its history
+- `GET /api/players` - Player search/autocomplete
+- `GET /api/dictionaries` - Installed dictionary status
+- `GET /api/dictionaries/catalog` - LibreOffice Roman alphabet catalog
+- `POST /api/dictionaries` - Install a dictionary by locale
+- `PUT /api/dictionaries/:locale` - Refresh or activate a dictionary
+- `DELETE /api/dictionaries/:locale` - Remove an installed dictionary
 
 ## 🛠️ Troubleshooting
 

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS players (
 CREATE TABLE IF NOT EXISTS games (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'finished')),
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'finished', 'interrupted')),
     winner_id INTEGER,
     board_state TEXT DEFAULT '[]',
     FOREIGN KEY (winner_id) REFERENCES players(id)
@@ -54,3 +54,4 @@ CREATE INDEX IF NOT EXISTS idx_game_players_game_id ON game_players(game_id);
 CREATE INDEX IF NOT EXISTS idx_turns_game_id ON turns(game_id);
 CREATE INDEX IF NOT EXISTS idx_turns_player_id ON turns(player_id);
 CREATE INDEX IF NOT EXISTS idx_turns_round_number ON turns(game_id, round_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_players_name_lower ON players(LOWER(name));

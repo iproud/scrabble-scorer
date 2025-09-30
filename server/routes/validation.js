@@ -1,52 +1,28 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const nspell = require('nspell');
+const { getSpellChecker, reloadDictionary } = require('../services/dictionaryLoader');
+const dictionaryManager = require('../services/dictionaryManager');
 
 const router = express.Router();
 
 // Dictionary setup
-let dictionary = null;
 let dictionaryLoaded = false;
 
-// Load Australian dictionary on startup
-function loadDictionary() {
-    try {
-        const dictionaryPath = path.join(__dirname, '../dictionary');
-        const affPath = path.join(dictionaryPath, 'en_AU.aff');
-        const dicPath = path.join(dictionaryPath, 'en_AU.dic');
-        
-        // Check if dictionary files exist
-        if (!fs.existsSync(affPath) || !fs.existsSync(dicPath)) {
-            console.warn('📚 Australian dictionary files not found, validation disabled');
-            return false;
-        }
-        
-        // Read dictionary files
-        const aff = fs.readFileSync(affPath, 'utf8');
-        const dic = fs.readFileSync(dicPath, 'utf8');
-        
-        // Create nspell instance
-        dictionary = nspell(aff, dic);
-        dictionaryLoaded = true;
-        
-        console.log('📚 Australian dictionary loaded successfully');
-        console.log(`📊 Dictionary contains approximately ${dic.split('\n').length - 1} words`);
-        
-        return true;
-    } catch (error) {
-        console.error('❌ Failed to load dictionary:', error.message);
-        dictionaryLoaded = false;
-        return false;
+function loadActiveDictionary() {
+    const { loaded } = getSpellChecker();
+    dictionaryLoaded = loaded;
+    if (!loaded) {
+        console.warn('📚 No active dictionary loaded. Word validation disabled until a dictionary is installed.');
     }
 }
 
-// Initialize dictionary on module load
-loadDictionary();
+loadActiveDictionary();
 
 // Helper function to check if a word is valid
 function isValidWord(word) {
-    if (!dictionaryLoaded || !dictionary) {
+    const { spell, loaded } = getSpellChecker();
+    if (!loaded || !spell) {
         // If dictionary not loaded, return true (validation disabled)
         return true;
     }
@@ -64,7 +40,7 @@ function isValidWord(word) {
     }
     
     // Use nspell to check the word
-    return dictionary.correct(cleanWord);
+    return spell.correct(cleanWord);
 }
 
 // POST /api/validation/word - Validate a single word
@@ -178,38 +154,43 @@ router.post('/turn', async (req, res) => {
 // GET /api/validation/status - Get dictionary status
 router.get('/status', (req, res) => {
     let wordCount = 0;
+    const activeLocale = dictionaryManager.getActiveLocale();
     
-    if (dictionaryLoaded && dictionary) {
+    if (dictionaryLoaded) {
         try {
-            // Estimate word count from dictionary file
-            const dicPath = path.join(__dirname, '../dictionary/en_AU.dic');
+            const { dicPath } = dictionaryManager.getDictionaryPaths(activeLocale);
             if (fs.existsSync(dicPath)) {
                 const dicContent = fs.readFileSync(dicPath, 'utf8');
                 const lines = dicContent.split('\n');
-                // First line contains the word count
-                wordCount = parseInt(lines[0]) || 0;
+                wordCount = parseInt(lines[0], 10) || 0;
             }
         } catch (error) {
             console.warn('Could not determine word count:', error.message);
         }
     }
     
+    const meta = dictionaryManager.getLocaleMetadata(activeLocale);
+    
     res.json({
         loaded: dictionaryLoaded,
         wordCount,
-        language: 'en-AU',
+        language: meta ? meta.language : activeLocale,
         status: dictionaryLoaded ? 'active' : 'disabled',
-        source: 'LibreOffice Australian Dictionary'
+        source: 'LibreOffice dictionaries',
+        locale: activeLocale
     });
 });
 
 // GET /api/validation/reload - Reload dictionary (for development)
 router.get('/reload', (req, res) => {
-    const success = loadDictionary();
+    const locale = req.query.locale || dictionaryManager.getActiveLocale();
+    const { loaded } = reloadDictionary(locale);
+    dictionaryLoaded = loaded;
     res.json({
-        success,
+        success: loaded,
         loaded: dictionaryLoaded,
-        message: success ? 'Dictionary reloaded successfully' : 'Failed to reload dictionary'
+        locale,
+        message: loaded ? `Dictionary ${locale} reloaded successfully` : `Failed to reload dictionary ${locale}`
     });
 });
 

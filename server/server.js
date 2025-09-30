@@ -19,13 +19,24 @@ try {
     process.exit(1);
 }
 
+// Dictionary services
+const dictionaryManager = require('./services/dictionaryManager');
+const { loadActiveDictionary } = require('./services/dictionaryLoader');
+
+dictionaryManager.ensureDefaultDictionaryInstalled();
+loadActiveDictionary();
+
 // Import routes
 const gamesRoutes = require('./routes/games');
 const validationRoutes = require('./routes/validation');
+const playersRoutes = require('./routes/players');
+const dictionariesRoutes = require('./routes/dictionaries');
 
 // API Routes
 app.use('/api/games', gamesRoutes);
 app.use('/api/validation', validationRoutes);
+app.use('/api/players', playersRoutes);
+app.use('/api/dictionaries', dictionariesRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
