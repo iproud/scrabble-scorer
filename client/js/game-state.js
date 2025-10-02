@@ -1,7 +1,6 @@
 // Game state management module
 class GameState {
     constructor() {
-        this.reset();
         this.letterScores = { 
             'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8, 
             'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1, 
@@ -24,6 +23,7 @@ class GameState {
             ['', 'DWS', '', '', '', 'TLS', '', '', '', 'TLS', '', '', '', 'DWS', ''],
             ['TWS', '', '', 'DLS', '', '', '', 'TWS', '', '', '', 'DLS', '', '', 'TWS']
         ];
+        this.reset();
     }
 
     reset() {
@@ -36,6 +36,11 @@ class GameState {
         this.boardState = Array(15).fill(null).map(() => Array(15).fill(null));
         this.blankTileIndices = new Set();
         this.isGameActive = false;
+        this.tileSupply = {
+            'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 3, 'H': 2, 'I': 9, 'J': 1,
+            'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 4, 'T': 6,
+            'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, 'BLANK': 2 // Using 'BLANK' for blank tiles
+        };
     }
 
     // Initialize new game
@@ -55,9 +60,11 @@ class GameState {
         
         // Replay turns to rebuild board state
         this.replayTurns();
+        this.restoreTileSupply(); // Restore tile supply after replaying turns
     }
 
     // Replay turns to rebuild board state
+    // This will reconstruct the boardState based on turnHistory
     replayTurns() {
         // Reset board
         this.boardState = Array(15).fill(null).map(() => Array(15).fill(null));
@@ -66,8 +73,46 @@ class GameState {
         this.turnHistory.forEach(turn => {
             if (turn.board_state_after) {
                 this.boardState = JSON.parse(JSON.stringify(turn.board_state_after));
+            } else {
+                // Backward compatibility for older turns if board_state_after wasn't explicitly saved
+                // This logic mirrors how applyTurn places tiles onto the board
+                const { word, startRow, startCol, direction, blankTiles } = turn;
+
+                for (let i = 0; i < word.length; i++) {
+                    const letter = word[i];
+                    const row = direction === 'across' ? startRow : startRow + i;
+                    const col = direction === 'across' ? startCol + i : col;
+                    const isBlank = blankTiles.includes(i);
+                    // Only place if it's a new tile placement (not already on board for the next turn)
+                    if (this.boardState[row] && this.boardState[row][col] === null) {
+                         this.boardState[row][col] = { letter, isBlank };
+                    }
+                }
             }
         });
+    }
+
+    // Restore tile supply based on current board state after replaying turns
+    restoreTileSupply() {
+         this.tileSupply = {
+            'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 3, 'H': 2, 'I': 9, 'J': 1,
+            'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 4, 'T': 6,
+            'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, 'BLANK': 2
+        };
+
+        // Iterate through the board and subtract tiles found
+        for (let r = 0; r < 15; r++) {
+            for (let c = 0; c < 15; c++) {
+                const tile = this.boardState[r][c];
+                if (tile) {
+                    if (tile.isBlank) {
+                        this.tileSupply['BLANK']--;
+                    } else {
+                        this.tileSupply[tile.letter]--;
+                    }
+                }
+            }
+        }
     }
 
     // Get current player
@@ -125,6 +170,13 @@ class GameState {
         mainWordScore *= mainWordMultiplier;
         breakdown.mainWord.score = mainWordScore;
 
+        // Check for Bingo Bonus eligibility
+        if (breakdown.newPlacements.length === 7) {
+            breakdown.eligibleForBingo = true;
+        } else {
+            breakdown.eligibleForBingo = false;
+        }
+
         // Secondary Word Calculation
         let totalSecondaryScore = 0;
         for (const placement of breakdown.newPlacements) {
@@ -144,26 +196,31 @@ class GameState {
 
     // Get perpendicular word for cross-word scoring
     getPerpendicularWord(placement, mainDirection) {
-        const { row, col, letter, isBlank } = placement;
+        const { row, col } = placement;
         const perpDirection = mainDirection === 'across' ? 'down' : 'across';
-        let wordParts = [{ ...placement }];
+        let wordParts = [];
 
-        // Trace backwards
-        let r = perpDirection === 'down' ? row - 1 : row;
-        let c = perpDirection === 'across' ? col - 1 : col;
-        while (r >= 0 && c >= 0 && this.boardState[r][c]) {
-            wordParts.unshift({ ...this.boardState[r][c], row: r, col: c });
-            r = perpDirection === 'down' ? r - 1 : r;
-            c = perpDirection === 'across' ? c - 1 : c;
+        // Trace backwards from the placement to find the literal start of the perpendicular word
+        let traceBackR = row;
+        let traceBackC = col;
+        while (true) {
+            const prevR = perpDirection === 'down' ? traceBackR - 1 : traceBackR;
+            const prevC = perpDirection === 'across' ? traceBackC - 1 : traceBackC;
+            if (prevR >= 0 && prevC >= 0 && this.boardState[prevR] && this.boardState[prevR][prevC]) {
+                traceBackR = prevR;
+                traceBackC = prevC;
+            } else {
+                break;
+            }
         }
-
-        // Trace forwards
-        r = perpDirection === 'down' ? row + 1 : row;
-        c = perpDirection === 'across' ? col + 1 : col;
-        while (r < 15 && c < 15 && this.boardState[r][c]) {
-            wordParts.push({ ...this.boardState[r][c], row: r, col: c });
-            r = perpDirection === 'down' ? r + 1 : r;
-            c = perpDirection === 'across' ? c + 1 : c;
+        
+        // Now trace forward from the determined start to reconstruct the full word
+        let currentR = traceBackR;
+        let currentC = traceBackC;
+        while (currentR < 15 && currentC < 15 && this.boardState[currentR] && this.boardState[currentR][currentC]) {
+            wordParts.push({ ...this.boardState[currentR][currentC], row: currentR, col: currentC });
+            currentR = perpDirection === 'down' ? currentR + 1 : currentR;
+            currentC = perpDirection === 'across' ? currentC + 1 : currentC;
         }
         return wordParts;
     }
@@ -251,15 +308,26 @@ class GameState {
             boardStateBefore: JSON.parse(JSON.stringify(this.boardState)),
         };
 
-        // Apply tiles to board
+        // Apply tiles to board and update tile supply
+        // Ensure blankTiles is a Set for calculateTurnScore and subsequent logic
+        const blankIndicesSet = new Set(blankTiles);
+
+        const { breakdown } = this.calculateTurnScore(word, startRow, startCol, direction, blankIndicesSet);
+
         for (let i = 0; i < word.length; i++) {
             const letter = word[i];
             const row = direction === 'across' ? startRow : startRow + i;
             const col = direction === 'across' ? startCol + i : startCol;
             const isBlank = blankTiles.includes(i);
-            
-            if (!this.boardState[row][col]) {
+
+            if (!this.boardState[row][col]) { // Only new placements affect tile supply
                 this.boardState[row][col] = { letter, isBlank };
+                // Decrement tile supply for newly placed tiles
+                if (isBlank) {
+                    this.tileSupply['BLANK']--;
+                } else {
+                    this.tileSupply[letter]--;
+                }
             }
         }
 
@@ -299,6 +367,18 @@ class GameState {
             // Restore player state (score)
             this.players[lastTurn.playerIndex].score = lastTurn.playerStateBefore.score;
             
+            // Increment tile supply for tiles that were un-placed
+            // Ensure blankTiles is a Set for calculateTurnScore
+            const { breakdown } = this.calculateTurnScore(lastTurn.word, lastTurn.startRow, lastTurn.startCol, lastTurn.direction, new Set(lastTurn.blankTiles));
+            const newPlacementsInUndoneTurn = breakdown.newPlacements; 
+            for (const placement of newPlacementsInUndoneTurn) {
+                if (placement.isBlank) {
+                    this.tileSupply['BLANK']++;
+                } else {
+                    this.tileSupply[placement.letter]++;
+                }
+            }
+            
             // Restore current player
             this.currentPlayerIndex = lastTurn.playerIndex;
             
@@ -316,29 +396,35 @@ class GameState {
         let newStartRow = startRow;
         let newStartCol = startCol;
 
-        const tappedTile = this.boardState[startRow][startCol];
-        if (tappedTile) {
-            word = tappedTile.letter;
+        // Determine the actual start of the fragment by tracing backward
+        let traceBackR = startRow;
+        let traceBackC = startCol;
+        if (direction === 'across') {
+            while (traceBackC > 0 && this.boardState[traceBackR][traceBackC - 1] !== null) {
+                traceBackC--;
+            }
+        } else { // 'down'
+            while (traceBackR > 0 && this.boardState[traceBackR - 1][traceBackC] !== null) {
+                traceBackR--;
+            }
         }
+        newStartRow = traceBackR;
+        newStartCol = traceBackC;
 
-        // Trace backwards
-        let r = direction === 'across' ? startRow : startRow - 1;
-        let c = direction === 'across' ? startCol - 1 : startCol;
-        while (r >= 0 && c >= 0 && this.boardState[r] && this.boardState[r][c]) {
-            word = this.boardState[r][c].letter + word;
-            newStartRow = r;
-            newStartCol = c;
-            r = direction === 'across' ? r : r - 1;
-            c = direction === 'across' ? c - 1 : c;
-        }
+        // Now trace forward from the determined start to reconstruct the full word fragment
+        let traceForwardR = newStartRow;
+        let traceForwardC = newStartCol;
 
-        // Trace forwards
-        r = direction === 'across' ? startRow : startRow + 1;
-        c = direction === 'across' ? startCol + 1 : startCol;
-        while (r < 15 && c < 15 && this.boardState[r] && this.boardState[r][c]) {
-            word = word + this.boardState[r][c].letter;
-            r = direction === 'across' ? r : r + 1;
-            c = direction === 'across' ? c + 1 : c;
+        if (direction === 'across') {
+            while (traceForwardC < 15 && this.boardState[traceForwardR][traceForwardC] !== null) {
+                word += this.boardState[traceForwardR][traceForwardC].letter;
+                traceForwardC++;
+            }
+        } else { // 'down'
+            while (traceForwardR < 15 && this.boardState[traceForwardR][traceForwardC] !== null) {
+                word += this.boardState[traceForwardR][traceForwardC].letter;
+                traceForwardR++;
+            }
         }
         
         return { word, startRow: newStartRow, startCol: newStartCol };
@@ -362,6 +448,15 @@ class GameState {
                 ...player,
                 averageScore: player.score / Math.max(1, this.turnHistory.filter(t => t.playerId === player.id).length)
             }))
+        };
+    }
+
+    // Get current tile supply and total remaining tiles
+    getTileSupply() {
+        const totalRemaining = Object.values(this.tileSupply).reduce((sum, count) => sum + count, 0);
+        return {
+            supply: { ...this.tileSupply },
+            totalRemaining: totalRemaining
         };
     }
 }

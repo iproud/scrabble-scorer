@@ -78,6 +78,13 @@ class ScrabbleApp {
         this.gameActionsButton = document.getElementById('game-actions-button');
         this.gameActionsMenu = document.getElementById('game-actions-menu');
         
+        // Tile countdown and modal elements
+        this.tileCountdownBtn = document.getElementById('tile-countdown-btn');
+        this.tileCountdownValue = document.getElementById('tile-countdown-value');
+        this.tileInventoryModal = document.getElementById('tile-inventory-modal');
+        this.closeTileInventoryBtn = document.getElementById('close-tile-inventory-btn');
+        this.tileInventoryGrid = document.getElementById('tile-inventory-grid');
+
         // Turn flow elements
         this.startPrompt = document.getElementById('start-prompt');
         this.directionContainer = document.getElementById('direction-container');
@@ -88,7 +95,6 @@ class ScrabbleApp {
         // Word input elements
         this.wordInput = document.getElementById('word-input');
         this.tileDisplayContainer = document.getElementById('tile-display-container');
-        this.bingoBtn = document.getElementById('bingo-btn');
         
         // Score elements
         this.turnScoreDisplay = document.getElementById('turn-score');
@@ -118,6 +124,7 @@ class ScrabbleApp {
         this.validationProceedBtn = document.getElementById('validation-proceed-btn');
 
         this.toggleGameActionsVisibility(false);
+        this.updateTileCountdown(); // Initialize tile countdown display
     }
 
     async registerServiceWorker() {
@@ -158,9 +165,6 @@ class ScrabbleApp {
         // Word input
         this.wordInput.addEventListener('input', () => this.handleWordInput());
         
-        // Bingo button
-        this.bingoBtn.addEventListener('click', () => this.toggleBingo());
-        
         // Action buttons
         this.submitTurnBtn.addEventListener('click', () => this.handleSubmitTurn());
         this.cancelTurnBtn.addEventListener('click', () => this.handleCancelTurn()); // New cancel button listener
@@ -178,6 +182,21 @@ class ScrabbleApp {
         this.closeStatsBtn.addEventListener('click', () => this.closeStatsModal());
         this.validationCancelBtn.addEventListener('click', () => this.closeValidationModal());
         this.validationProceedBtn.addEventListener('click', () => this.proceedWithTurn());
+
+        // Tile countdown and inventory modal
+        if (this.tileCountdownBtn) {
+            this.tileCountdownBtn.addEventListener('click', () => this.openTileInventoryModal());
+        }
+        if (this.closeTileInventoryBtn) {
+            this.closeTileInventoryBtn.addEventListener('click', () => this.closeTileInventoryModal());
+        }
+        if (this.tileInventoryModal) {
+            this.tileInventoryModal.addEventListener('click', (e) => {
+                if (e.target === this.tileInventoryModal) {
+                    this.closeTileInventoryModal();
+                }
+            });
+        }
         
         // Player cards (for stats)
         this.playersScoresContainer.addEventListener('click', (e) => {
@@ -669,10 +688,10 @@ class ScrabbleApp {
         // Update UI flow
         window.gameState.wordDirection = null;
         this.startPrompt.classList.add('hidden');
-        this.wordEntryContainer.classList.add('hidden');
-        this.directionContainer.classList.remove('hidden');
+        this.directionContainer.classList.remove('hidden'); // Show direction buttons
+        this.wordEntryContainer.classList.add('hidden'); // Keep word entry hidden initially
         
-        // Reset direction buttons
+        // Reset direction buttons visuals
         this.resetDirectionButtons();
         
         this.wordInput.value = '';
@@ -712,7 +731,8 @@ class ScrabbleApp {
             this.currentWord = fragment.word;
         }
         
-        this.wordEntryContainer.classList.remove('hidden');
+        // Ensure word entry container is visible after a direction is chosen
+        this.wordEntryContainer.classList.remove('hidden'); 
         this.wordInput.focus();
         this.updateTurnState();
     }
@@ -720,14 +740,6 @@ class ScrabbleApp {
     handleWordInput() {
         this.wordInput.value = this.wordInput.value.toUpperCase().replace(/[^A-Z]/g, '');
         this.currentWord = this.wordInput.value;
-        this.updateTurnState();
-    }
-
-    toggleBingo() {
-        this.bingoActive = !this.bingoActive;
-        this.bingoBtn.classList.toggle('active');
-        this.bingoBtn.classList.toggle('bg-yellow-400');
-        this.bingoBtn.classList.toggle('bg-yellow-600');
         this.updateTurnState();
     }
 
@@ -740,11 +752,14 @@ class ScrabbleApp {
             window.gameState.blankTileIndices
         );
         
+        // Automatically activate bingo if eligible
+        this.bingoActive = breakdown.eligibleForBingo;
+
         // Add bingo bonus if active
         let finalScore = score;
         if (this.bingoActive) {
             finalScore += 50;
-            breakdown.bingoBonus = 50;
+            breakdown.bingoBonus = 50; // Set bingoBonus in breakdown for display
         }
         
         this.turnScoreDisplay.textContent = finalScore;
@@ -764,7 +779,7 @@ class ScrabbleApp {
     updateTileDisplay() {
         this.tileDisplayContainer.innerHTML = '';
         const word = this.currentWord;
-        if (!window.gameState.selectedCell.row === null || !word) return;
+        if (window.gameState.selectedCell.row === null || !word) return; // Corrected condition
 
         for (let i = 0; i < word.length; i++) {
             const letter = word[i];
@@ -959,6 +974,7 @@ class ScrabbleApp {
         this.updatePlayerCards();
         this.updateTurnIndicator();
         this.resetTurn();
+        this.updateTileCountdown(); // Update tile countdown after each turn
     }
 
     showValidationWarning(validation) {
@@ -1018,6 +1034,7 @@ class ScrabbleApp {
                 ${sortedPlayers.map(p => `<div class="flex justify-between items-center bg-gray-100 p-3 rounded-lg mb-2"><span class="font-semibold text-lg">${p.name}</span><span class="text-lg">${p.score}</span></div>`).join('')}
             `;
             this.endGameModal.classList.remove('hidden');
+            this.updateTileCountdown(); // Update tile countdown to show all tiles for new game
             
             // Clear saved game
             localStorage.removeItem('scrabble_current_game');
@@ -1048,14 +1065,13 @@ class ScrabbleApp {
                 const blob = new Blob([payload], { type: 'application/json' });
                 delivered = navigator.sendBeacon(url, blob);
             }
-            if (!delivered) {
-                await fetch(url, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: payload,
-                    keepalive: true
-                });
-            }
+            // Always use PUT method based on server route definition
+            await fetch(url, {
+                method: 'PUT', // Corrected to PUT
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+                keepalive: true
+            });
             window.gameState.isGameActive = false;
             localStorage.setItem(LAST_INTERRUPTED_STORAGE_KEY, gameId.toString());
             localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY);
@@ -1117,7 +1133,8 @@ class ScrabbleApp {
         
         // Reset game state
         window.gameState.reset();
-        
+        this.updateTileCountdown(); // Reset tile countdown display
+
         // Clear URL
         const url = new URL(window.location);
         url.searchParams.delete('game');
@@ -1139,8 +1156,6 @@ class ScrabbleApp {
         document.querySelectorAll('.board-cell.selected').forEach(c => c.classList.remove('selected'));
         
         this.bingoActive = false;
-        this.bingoBtn.classList.remove('active', 'bg-yellow-600');
-        this.bingoBtn.classList.add('bg-yellow-400');
         
         window.gameState.blankTileIndices.clear();
         
@@ -1155,7 +1170,23 @@ class ScrabbleApp {
         if (this.isMobileLayout()) {
             this.closeMobileSheet();
         }
-        this.updateCancelAndUndoButtonVisibility(); // Update button visibility
+        this.updateCancelAndUndoButtonVisibility(); // Update visibility after clear
+        this.updateTileCountdown(); // Update tile countdown after resetting the turn
+    }
+    // New helper method to clear word input and reset UI flow without immediately calling updateTurnState
+    clearWordInputAndResetUI() {
+        this.wordInput.value = '';
+        this.currentWord = '';
+        window.gameState.selectedCell = { row: null, col: null };
+        window.gameState.wordDirection = null;
+        document.querySelectorAll('.board-cell.selected').forEach(c => c.classList.remove('selected'));
+        
+        // Reset UI flow to initial state
+        this.wordEntryContainer.classList.add('hidden');
+        this.directionContainer.classList.add('hidden');
+        this.startPrompt.classList.remove('hidden');
+
+        // This should not call updateTurnState directly to avoid recalculating score with empty word and triggering unnecessary updates
     }
 
     updatePlayerCards() {
@@ -1300,6 +1331,45 @@ class ScrabbleApp {
         this.statsModal.classList.add('hidden');
     }
 
+    // New methods for tile countdown and inventory modal
+    updateTileCountdown() {
+        if (!this.tileCountdownValue) return;
+        const { totalRemaining } = window.gameState.getTileSupply();
+        this.tileCountdownValue.textContent = totalRemaining;
+        this.tileCountdownBtn.classList.toggle('hidden', this.isReadOnly || !window.gameState.gameId); // Hide if in read-only mode or no game active
+    }
+
+    openTileInventoryModal() {
+        if (!this.tileInventoryModal || !this.tileInventoryGrid) return;
+        
+        const { supply } = window.gameState.getTileSupply();
+        this.tileInventoryGrid.innerHTML = ''; // Clear previous tiles
+
+        const sortedTiles = Object.keys(supply).sort();
+
+        sortedTiles.forEach(letter => {
+            const count = supply[letter];
+            const tileElement = document.createElement('div');
+            tileElement.classList.add('flex', 'flex-col', 'items-center', 'justify-center', 'p-2', 'border', 'rounded-lg', 'bg-gray-50');
+            tileElement.innerHTML = `
+                <span class="text-2xl font-bold">${letter}</span>
+                <span class="text-sm text-gray-500">${count}</span>
+            `;
+            if (count === 0) {
+                // Apply 'faded out' style when no more tiles are available
+                tileElement.classList.add('opacity-30', 'grayscale');
+            }
+            this.tileInventoryGrid.appendChild(tileElement);
+        });
+
+        this.tileInventoryModal.classList.remove('hidden');
+    }
+
+    closeTileInventoryModal() {
+        if (!this.tileInventoryModal) return;
+        this.tileInventoryModal.classList.add('hidden');
+    }
+
     // Utility methods
     setLoading(element, loading) {
         if (!element) return;
@@ -1319,9 +1389,9 @@ class ScrabbleApp {
 
     // New helper method to manage visibility of cancel and undo buttons
     updateCancelAndUndoButtonVisibility() {
+        // Cancel button visible only if a word is being entered or a cell is selected
         if (this.cancelTurnBtn) {
-            // Cancel button visible only if a word is being entered
-            this.cancelTurnBtn.classList.toggle('hidden', !this.currentWord);
+            this.cancelTurnBtn.classList.toggle('hidden', !(this.currentWord || window.gameState.selectedCell.row !== null));
         }
 
         if (this.topbarUndoBtn) {
@@ -1332,25 +1402,16 @@ class ScrabbleApp {
     }
 
     handleCancelTurn() {
-        // Clear word input and selected cells
-        this.wordInput.value = '';
-        this.currentWord = '';
-        window.gameState.selectedCell = { row: null, col: null };
-        window.gameState.wordDirection = null;
-        document.querySelectorAll('.board-cell.selected').forEach(c => c.classList.remove('selected'));
-
-        // Reset UI flow
-        this.wordEntryContainer.classList.add('hidden');
-        this.directionContainer.classList.add('hidden');
-        this.startPrompt.classList.remove('hidden');
-
+        this.clearWordInputAndResetUI(); // Use the helper method to clear and reset UI
+        
         // Close mobile sheet if open
         if (this.isMobileLayout() && this.isMobileSheetOpen()) {
             this.closeMobileSheet();
         }
 
-        this.updateTurnState();
-        this.updateCancelAndUndoButtonVisibility(); // Update visibility after clear
+        // Call updateTurnState to ensure UI is consistent with reset state
+        // This will in turn call updateCancelAndUndoButtonVisibility and updateTileCountdown
+        this.updateTurnState(); 
     }
 }
 

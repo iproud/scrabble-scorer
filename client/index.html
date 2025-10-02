@@ -32,6 +32,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
             <a href="/" class="text-lg font-semibold text-indigo-600 tracking-tight">Scrabble Keeper</a>
             <div class="flex items-center gap-2">
+                <!-- Tile Countdown Button (added) -->
+                <button id="tile-countdown-btn" class="w-9 h-9 p-1 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500" title="Tile Supply">
+                    <span id="tile-countdown-value" class="text-sm font-semibold">0</span>
+                </button>
                 <!-- Undo Button (moved to topbar) -->
                 <button id="topbar-undo-btn" class="hidden w-9 h-9 p-1 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500" title="Undo Last Turn">
                     <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 7v6h6"></path> <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path> </g></svg>
@@ -215,11 +219,6 @@
                                     <!-- Tiles will be dynamically generated here -->
                                 </div>
 
-                                <!-- Bingo Bonus -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-600 mb-2">Bingo Bonus</label>
-                                    <button id="bingo-btn" class="w-full bg-yellow-400 border-2 border-yellow-500 py-3 px-4 rounded-lg font-semibold transition">Use all 7 tiles (+50)</button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -293,6 +292,19 @@
                     <div id="player-history-container">
                         <!-- Player history table will be injected here -->
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tile Inventory Modal -->
+        <div id="tile-inventory-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Tile Bag</h2>
+                    <button id="close-tile-inventory-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+                </div>
+                <div id="tile-inventory-grid" class="grid grid-cols-5 gap-4 overflow-y-auto">
+                    <!-- Tiles will be dynamically injected here -->
                 </div>
             </div>
         </div>
