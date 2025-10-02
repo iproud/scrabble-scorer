@@ -122,6 +122,36 @@ function ensureLowercaseIndex(db) {
     }
 }
 
+function recalculateRoundNumbers(db) {
+    console.log('Recalculating round numbers for existing turns...');
+
+    const games = db.prepare('SELECT id FROM games').all();
+    const getNumPlayers = db.prepare('SELECT COUNT(*) as count FROM game_players WHERE game_id = ?');
+    const getTurns = db.prepare('SELECT id, player_id, round_number FROM turns WHERE game_id = ? ORDER BY id');
+    const updateTurnRoundNumber = db.prepare('UPDATE turns SET round_number = ? WHERE id = ?');
+
+    db.transaction(() => {
+        games.forEach(game => {
+            const numPlayersResult = getNumPlayers.get(game.id);
+            const numPlayers = numPlayersResult ? numPlayersResult.count : 0;
+
+            if (numPlayers === 0) {
+                console.warn(`Game ${game.id} has no players, skipping round number recalculation.`);
+                return;
+            }
+
+            const turns = getTurns.all(game.id);
+            turns.forEach((turn, index) => {
+                const newRoundNumber = Math.floor(index / numPlayers) + 1;
+                if (turn.round_number !== newRoundNumber) {
+                    updateTurnRoundNumber.run(newRoundNumber, turn.id);
+                }
+            });
+        });
+    })();
+    console.log('Round number recalculation complete.');
+}
+
 function performMigrations(db) {
     const hasPlayers = tableExists(db, 'players');
     const hasGamePlayers = tableExists(db, 'game_players');
@@ -142,6 +172,11 @@ function performMigrations(db) {
             migrateGamesStatusConstraint(db);
         });
         migrateGames();
+    }
+
+    // New migration step for recalculating round numbers
+    if (hasTurns && hasGamePlayers && hasGames) { // Ensure all relevant tables exist
+        recalculateRoundNumbers(db);
     }
 }
 

@@ -213,12 +213,29 @@ router.post('/:id/turns', (req, res) => {
         }
         
         const db = getDatabase();
-        
+
         db.transaction(() => {
-            // Get current round number
-            const lastTurn = db.prepare('SELECT MAX(round_number) as max_round FROM turns WHERE game_id = ?').get(gameId);
-            const roundNumber = (lastTurn && lastTurn.max_round ? lastTurn.max_round : 0) + 1;
-            
+            // Get the total number of players in the game
+            const numPlayersResult = db.prepare('SELECT COUNT(*) as count FROM game_players WHERE game_id = ?').get(gameId);
+            const numPlayers = numPlayersResult ? numPlayersResult.count : 0;
+
+            if (numPlayers === 0) {
+                throw new Error('No players found for this game.');
+            }
+
+            // Get the total number of turns already submitted for this game
+            const totalTurnsResult = db.prepare('SELECT COUNT(*) as count FROM turns WHERE game_id = ?').get(gameId);
+            const totalTurnsSubmitted = totalTurnsResult ? totalTurnsResult.count : 0;
+
+            // Calculate the current round number
+            // A round completes when all players have taken their turn.
+            // For example, if 2 players:
+            // 0 turns -> round 1
+            // 1 turn -> round 1
+            // 2 turns -> round 2
+            // 3 turns -> round 2
+            const roundNumber = Math.floor(totalTurnsSubmitted / numPlayers) + 1;
+
             // Insert turn
             const insertTurn = db.prepare(`
                 INSERT INTO turns (
@@ -227,7 +244,7 @@ router.post('/:id/turns', (req, res) => {
                     direction, blank_tiles
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
-            
+
             insertTurn.run(
                 gameId, playerId, roundNumber, word, score,
                 JSON.stringify(secondaryWords), JSON.stringify(boardState),
