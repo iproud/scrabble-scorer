@@ -273,3 +273,7 @@ body.mobile-game-sheet-open {
     transition: opacity 0.25s ease-out;
     z-index: 40;
 }
+
+#word-validation-modal {
+    z-index: 9999 !important;
+}
