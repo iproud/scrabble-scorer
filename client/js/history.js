@@ -183,15 +183,6 @@ class GameHistoryApp {
                         <div class="flex flex-wrap items-center gap-3">
                             <h3 class="text-xl font-bold text-gray-900">Game #${game.id}</h3>
                             ${statusBadge}
-                            <span class="text-xs font-medium uppercase tracking-wide ${game.status === 'active'
-                                ? 'text-indigo-500'
-                                : game.status === 'interrupted'
-                                    ? 'text-amber-500'
-                                    : 'text-emerald-500'}">
-                                ${game.status === 'active' ? 'In Progress'
-                                    : game.status === 'interrupted' ? 'Paused'
-                                    : 'Completed'}
-                            </span>
                         </div>
 
                         <div class="flex flex-wrap gap-6 text-sm text-gray-600">

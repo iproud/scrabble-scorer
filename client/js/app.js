@@ -1331,6 +1331,16 @@ class ScrabbleApp {
         this.statsModal.classList.add('hidden');
     }
 
+    openHelpModal() {
+        if (!this.helpModal) return;
+        this.helpModal.classList.remove('hidden');
+    }
+
+    closeHelpModal() {
+        if (!this.helpModal) return;
+        this.helpModal.classList.add('hidden');
+    } 
+
     // New methods for tile countdown and inventory modal
     updateTileCountdown() {
         if (!this.tileCountdownValue) return;
@@ -1345,15 +1355,21 @@ class ScrabbleApp {
         const { supply } = window.gameState.getTileSupply();
         this.tileInventoryGrid.innerHTML = ''; // Clear previous tiles
 
-        const sortedTiles = Object.keys(supply).sort();
+        const tileOrder = [
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+            'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+            'BLANK' // Blank tile explicitly at the end
+        ];
 
-        sortedTiles.forEach(letter => {
+        tileOrder.forEach(letter => {
             const count = supply[letter];
+            if (count === undefined) return; // Skip if tile not in supply
+
             const tileElement = document.createElement('div');
-            tileElement.classList.add('flex', 'flex-col', 'items-center', 'justify-center', 'p-2', 'border', 'rounded-lg', 'bg-gray-50');
+            tileElement.classList.add('flex', 'flex-col', 'items-center', 'justify-center', 'p-1', 'border', 'rounded-lg', 'bg-gray-50');
             tileElement.innerHTML = `
-                <span class="text-2xl font-bold">${letter}</span>
-                <span class="text-sm text-gray-500">${count}</span>
+                <span class="text-xl font-bold">${letter}</span>
+                <span class="text-xs text-gray-500">${count}</span>
             `;
             if (count === 0) {
                 // Apply 'faded out' style when no more tiles are available
