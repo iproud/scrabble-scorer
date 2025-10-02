@@ -122,6 +122,11 @@ class ScrabbleApp {
         this.validationMessage = document.getElementById('validation-message');
         this.validationCancelBtn = document.getElementById('validation-cancel-btn');
         this.validationProceedBtn = document.getElementById('validation-proceed-btn');
+        
+        // Help modal
+        this.helpModal = document.getElementById('help-modal');
+        this.helpMenuBtn = document.getElementById('help-menu-btn');
+        this.closeHelpModalBtn = document.getElementById('close-help-modal-btn');
 
         this.toggleGameActionsVisibility(false);
         this.updateTileCountdown(); // Initialize tile countdown display
@@ -211,6 +216,21 @@ class ScrabbleApp {
                 this.closeStatsModal();
             }
         });
+
+        // Help modal event listeners
+        if (this.helpMenuBtn) {
+            this.helpMenuBtn.addEventListener('click', () => this.openHelpModal());
+        }
+        if (this.closeHelpModalBtn) {
+            this.closeHelpModalBtn.addEventListener('click', () => this.closeHelpModal());
+        }
+        if (this.helpModal) {
+            this.helpModal.addEventListener('click', (e) => {
+                if (e.target === this.helpModal) {
+                    this.closeHelpModal();
+                }
+            });
+        }
     }
 
     setupPlayerAutocomplete() {
@@ -1367,8 +1387,11 @@ class ScrabbleApp {
 
             const tileElement = document.createElement('div');
             tileElement.classList.add('flex', 'flex-col', 'items-center', 'justify-center', 'p-1', 'border', 'rounded-lg', 'bg-gray-50');
+            
+            // Apply special styling for BLANK tiles
+            const letterClass = letter === 'BLANK' ? 'tile-inventory-blank' : 'text-xl font-bold';
             tileElement.innerHTML = `
-                <span class="text-xl font-bold">${letter}</span>
+                <span class="${letterClass}">${letter}</span>
                 <span class="text-xs text-gray-500">${count}</span>
             `;
             if (count === 0) {

@@ -39,13 +39,15 @@
                     <span class="sr-only">Open menu</span>
                 </button>
                 <nav id="topbar-menu" class="hidden absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
-                    <a href="/" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-xl">
+                    <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-xl">
                         New Game
-                        <span class="text-xs text-gray-400">⌘ N</span>
                     </a>
                     <a href="/history.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                         History
                     </a>
+                    <button id="help-menu-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        Help
+                    </button>
                     <a href="/admin.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-xl">
                         Admin
                     </a>
@@ -190,6 +192,46 @@
             </section>
         </div>
     </main>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-6 max-w-xl w-full max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">How to Play</h2>
+                <button id="close-help-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+            </div>
+            <div id="help-modal-content" class="overflow-y-auto text-gray-700 space-y-4">
+                <h3 class="text-xl font-semibold">Quick Tips:</h3>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li>Pause a game at any time and resume it later from history.</li>
+                    <li>Use the menu in the top right to jump to previous games or manage dictionaries.</li>
+                    <li>Player suggestions will appear as you type to avoid duplicates.</li>
+                    <li>Tap a blank tile in the word entry area to toggle it blank (score 0).</li>
+                    <li>The tile bag icon in the top bar shows remaining tiles. Tap it for a detailed breakdown.</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold mt-4">Playing a Turn:</h3>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li><strong>Select a starting square</strong> on the board for your word.</li>
+                    <li><strong>Choose a direction</strong> (ACROSS or DOWN). The word entry box will automatically fill with any existing intersecting letters.</li>
+                    <li><strong>Type your word</strong> into the text box. The score preview and tile display will update in real-time. Tap any empty tile in the tile display to mark it as a blank tile (score 0).</li>
+                    <li>Ensure your word is valid and connected to existing words (after the first turn).</li>
+                    <li>Tap <strong>Submit Turn</strong> to record your score.</li>
+                </ol>
+
+                <h3 class="text-xl font-semibold mt-4">Game Management:</h3>
+                <p>Use the play/pause icon in the top bar to:</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>Pause Game</strong>: Save your current game to resume later from the history screen.</li>
+                    <li><strong>Finish Game</strong>: End the current game and declare a winner.</li>
+                    <li><strong>Abandon Game</strong>: Delete the current game and all its turns permanently.</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold mt-4">Dictionary Validation:</h3>
+                <p>Enable dictionary validation on the setup screen or during a game (toggle in the board section) to ensure all submitted words are valid according to the active dictionary.</p>
+            </div>
+        </div>
+    </div>
 
     <!-- JavaScript Modules -->
     <script src="/js/api.js"></script>

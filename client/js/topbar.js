@@ -105,3 +105,58 @@ new DropdownMenu({
     menuId: 'game-actions-menu',
     instanceKey: 'gameActions'
 });
+
+// Help Modal functionality
+class HelpModal {
+    constructor() {
+        this.modal = document.getElementById('help-modal');
+        this.helpMenuBtn = document.getElementById('help-menu-btn');
+        this.closeBtn = document.getElementById('close-help-modal-btn');
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
+        }
+    }
+
+    init() {
+        if (!this.modal || !this.helpMenuBtn || !this.closeBtn) {
+            return;
+        }
+
+        this.helpMenuBtn.addEventListener('click', () => this.open());
+        this.closeBtn.addEventListener('click', () => this.close());
+        
+        // Close on backdrop click
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) {
+                this.close();
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !this.modal.classList.contains('hidden')) {
+                this.close();
+            }
+        });
+    }
+
+    open() {
+        if (this.modal) {
+            this.modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    close() {
+        if (this.modal) {
+            this.modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+}
+
+// Initialize help modal
+new HelpModal();

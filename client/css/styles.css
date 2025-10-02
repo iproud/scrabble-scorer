@@ -173,6 +173,12 @@ body {
     color: white;
 }
 
+/* Tile inventory modal blank tile styling */
+.tile-inventory-blank {
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+}
+
 /* Loading states */
 .loading {
     opacity: 0.6;
