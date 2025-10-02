@@ -96,7 +96,8 @@ class ScrabbleApp {
         
         // Action buttons
         this.submitTurnBtn = document.getElementById('submit-turn-btn');
-        this.undoBtn = document.getElementById('undo-btn');
+        this.cancelTurnBtn = document.getElementById('cancel-turn-btn'); // New cancel button
+        this.topbarUndoBtn = document.getElementById('topbar-undo-btn'); // New topbar undo button
         this.endGameBtn = document.getElementById('end-game-btn');
         this.pauseGameBtn = document.getElementById('pause-game-btn');
         this.abandonGameBtn = document.getElementById('abandon-game-btn');
@@ -162,7 +163,8 @@ class ScrabbleApp {
         
         // Action buttons
         this.submitTurnBtn.addEventListener('click', () => this.handleSubmitTurn());
-        this.undoBtn.addEventListener('click', () => this.handleUndo());
+        this.cancelTurnBtn.addEventListener('click', () => this.handleCancelTurn()); // New cancel button listener
+        this.topbarUndoBtn.addEventListener('click', () => this.handleUndo()); // New undo button listener
         this.endGameBtn.addEventListener('click', () => this.handleEndGame());
         if (this.pauseGameBtn) {
             this.pauseGameBtn.addEventListener('click', () => this.handlePauseGame());
@@ -540,10 +542,12 @@ class ScrabbleApp {
         this.setupReadOnlyMode(isReadOnly);
         if (!isReadOnly) {
             this.resetTurn();
+            this.updateCancelAndUndoButtonVisibility(); // Update button visibility
         } else {
             this.closeMobileSheet();
         }
         this.updateResumeButtonVisibility();
+        this.updateCancelAndUndoButtonVisibility(); // Update button visibility
     }
 
     setupReadOnlyMode(isReadOnly) {
@@ -556,8 +560,9 @@ class ScrabbleApp {
             this.directionContainer.classList.add('hidden');
             this.wordEntryContainer.classList.add('hidden');
             this.submitTurnBtn.classList.add('hidden');
-            this.undoBtn.classList.add('hidden');
-            this.endGameBtn.classList.add('hidden');
+            if (this.cancelTurnBtn) this.cancelTurnBtn.classList.add('hidden'); // Ensure cancel button is hidden in read-only
+            if (this.topbarUndoBtn) this.topbarUndoBtn.classList.add('hidden'); // Ensure topbar undo button is hidden in read-only
+            if (this.endGameBtn) this.endGameBtn.classList.add('hidden');
             if (this.pauseGameBtn) this.pauseGameBtn.classList.add('hidden');
             if (this.abandonGameBtn) this.abandonGameBtn.classList.add('hidden');
             
@@ -595,8 +600,8 @@ class ScrabbleApp {
             
             // Show interactive elements
             this.submitTurnBtn.classList.remove('hidden');
-            this.undoBtn.classList.remove('hidden');
-            this.endGameBtn.classList.remove('hidden');
+            // Old undoBtn logic removed, new topbarUndoBtn visibility handled by updateCancelAndUndoButtonVisibility
+            if (this.endGameBtn) this.endGameBtn.classList.remove('hidden');
             if (this.pauseGameBtn) {
                 this.pauseGameBtn.classList.remove('hidden', 'loading');
                 this.pauseGameBtn.disabled = false;
@@ -605,6 +610,7 @@ class ScrabbleApp {
                 this.abandonGameBtn.classList.remove('hidden', 'loading');
                 this.abandonGameBtn.disabled = false;
             }
+            this.updateCancelAndUndoButtonVisibility(); // Ensure correct visibility for interactive mode
         }
     }
 
@@ -752,6 +758,7 @@ class ScrabbleApp {
         } else {
             this.submitTurnBtn.classList.add('hidden');
         }
+        this.updateCancelAndUndoButtonVisibility(); // Update button visibility
     }
 
     updateTileDisplay() {
@@ -919,18 +926,33 @@ class ScrabbleApp {
             word: this.currentWord,
             score: finalScore,
             secondaryWords: breakdown.secondaryWords,
-            boardState: JSON.parse(JSON.stringify(window.gameState.boardState)),
+            boardState: JSON.parse(JSON.stringify(window.gameState.boardState)), // This is the board state *before* the new turn is applied
             startRow: window.gameState.selectedCell.row,
             startCol: window.gameState.selectedCell.col,
             direction: window.gameState.wordDirection,
             blankTiles: Array.from(window.gameState.blankTileIndices)
         };
         
-        // Apply turn locally first
-        window.gameState.applyTurn(turnData);
+        // Apply turn locally first (this will modify window.gameState.boardState and populate `boardStateAfter` in the last turn history entry)
+        const newTurn = window.gameState.applyTurn(turnData);
+
+        // Prepare turn data for the server, using the actual boardState after the turn was applied
+        const turnDataForServer = {
+            playerId: newTurn.playerId,
+            word: newTurn.word,
+            score: newTurn.score,
+            secondaryWords: newTurn.secondaryWords,
+            boardState: JSON.parse(JSON.stringify(newTurn.boardStateAfter)), // Send the state AFTER this turn
+            startRow: newTurn.startRow,
+            startCol: newTurn.startCol,
+            direction: newTurn.direction,
+            blankTiles: newTurn.blankTiles
+        };
         
+        console.log('Sending turnDataForServer:', turnDataForServer); // DEBUG LOG
+
         // Submit to server
-        await window.scrabbleAPI.submitTurn(window.gameState.gameId, turnData);
+        await window.scrabbleAPI.submitTurn(window.gameState.gameId, turnDataForServer);
         
         // Update UI
         this.renderBoard();
@@ -967,12 +989,16 @@ class ScrabbleApp {
         }
     }
 
-    handleUndo() {
-        if (window.gameState.undoLastTurn()) {
+    async handleUndo() {
+        try {
+            await window.gameState.undoLastTurn();
             this.renderBoard();
             this.updatePlayerCards();
             this.updateTurnIndicator();
             this.resetTurn();
+        } catch (error) {
+            console.error('Error in handleUndo:', error);
+            this.showError('Failed to undo last turn. Please try again.');
         }
     }
 
@@ -1124,11 +1150,12 @@ class ScrabbleApp {
         this.startPrompt.classList.remove('hidden');
         
         this.updateTurnState();
-        this.undoBtn.disabled = window.gameState.turnHistory.length === 0;
+        // this.undoBtn.disabled = window.gameState.turnHistory.length === 0; // Removed, handled by updateCancelAndUndoButtonVisibility
 
         if (this.isMobileLayout()) {
             this.closeMobileSheet();
         }
+        this.updateCancelAndUndoButtonVisibility(); // Update button visibility
     }
 
     updatePlayerCards() {
@@ -1288,6 +1315,42 @@ class ScrabbleApp {
     showError(message) {
         // Simple alert for now - could be enhanced with a toast system
         alert(message);
+    }
+
+    // New helper method to manage visibility of cancel and undo buttons
+    updateCancelAndUndoButtonVisibility() {
+        if (this.cancelTurnBtn) {
+            // Cancel button visible only if a word is being entered
+            this.cancelTurnBtn.classList.toggle('hidden', !this.currentWord);
+        }
+
+        if (this.topbarUndoBtn) {
+            // Undo button visible only if there's turn history and not in read-only mode
+            this.topbarUndoBtn.classList.toggle('hidden', this.isReadOnly || window.gameState.turnHistory.length === 0);
+            this.topbarUndoBtn.disabled = this.isReadOnly || window.gameState.turnHistory.length === 0;
+        }
+    }
+
+    handleCancelTurn() {
+        // Clear word input and selected cells
+        this.wordInput.value = '';
+        this.currentWord = '';
+        window.gameState.selectedCell = { row: null, col: null };
+        window.gameState.wordDirection = null;
+        document.querySelectorAll('.board-cell.selected').forEach(c => c.classList.remove('selected'));
+
+        // Reset UI flow
+        this.wordEntryContainer.classList.add('hidden');
+        this.directionContainer.classList.add('hidden');
+        this.startPrompt.classList.remove('hidden');
+
+        // Close mobile sheet if open
+        if (this.isMobileLayout() && this.isMobileSheetOpen()) {
+            this.closeMobileSheet();
+        }
+
+        this.updateTurnState();
+        this.updateCancelAndUndoButtonVisibility(); // Update visibility after clear
     }
 }
 

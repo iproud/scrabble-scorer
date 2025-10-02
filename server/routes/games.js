@@ -264,7 +264,7 @@ router.post('/:id/turns', (req, res) => {
         
         db.close();
     } catch (error) {
-        console.error('Error submitting turn:', error);
+        console.error('Error submitting turn:', error.message, error.stack); // Added error.message and error.stack
         res.status(500).json({ error: 'Failed to submit turn' });
     }
 });
@@ -345,6 +345,60 @@ router.put('/:id/reinstate', (req, res) => {
     } catch (error) {
         console.error('Error reinstating game:', error);
         res.status(500).json({ error: 'Failed to reinstate game' });
+    }
+});
+
+// DELETE /api/games/:id/turns/last - Undo the last turn for a game
+router.delete('/:id/turns/last', (req, res) => {
+    try {
+        const gameId = parseInt(req.params.id);
+        const db = getDatabase();
+
+        db.transaction(() => {
+            // Get the last turn for the game
+            const lastTurn = db.prepare(`
+                SELECT * FROM turns 
+                WHERE game_id = ? 
+                ORDER BY id DESC 
+                LIMIT 1
+            `).get(gameId);
+
+            if (!lastTurn) {
+                db.close();
+                return res.status(404).json({ error: 'No turns to undo for this game.' });
+            }
+
+            // Update player score
+            const updateScore = db.prepare('UPDATE game_players SET score = score - ? WHERE game_id = ? AND player_id = ?');
+            updateScore.run(lastTurn.score, gameId, lastTurn.player_id);
+
+            // Get the board state BEFORE the last turn (which is the board_state_after of the second to last turn)
+            const secondLastTurn = db.prepare(`
+                SELECT board_state_after FROM turns
+                WHERE game_id = ? AND id != ?
+                ORDER BY id DESC
+                LIMIT 1
+            `).get(gameId, lastTurn.id);
+            
+            let newBoardState = '[]'; // Default to empty board if no other turns exist
+            if (secondLastTurn && secondLastTurn.board_state_after) {
+                newBoardState = secondLastTurn.board_state_after;
+            }
+
+            // Update game's board state
+            const updateGameBoard = db.prepare('UPDATE games SET board_state = ? WHERE id = ?');
+            updateGameBoard.run(newBoardState, gameId);
+
+            // Delete the last turn
+            db.prepare('DELETE FROM turns WHERE id = ?').run(lastTurn.id);
+            
+            res.json({ success: true, undoneTurn: lastTurn });
+        })();
+
+        db.close();
+    } catch (error) {
+        console.error('Error undoing last turn:', error);
+        res.status(500).json({ error: 'Failed to undo last turn' });
     }
 });
 

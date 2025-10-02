@@ -248,7 +248,7 @@ class GameState {
             direction,
             blankTiles: blankTiles || [],
             playerStateBefore: JSON.parse(JSON.stringify(this.getCurrentPlayer())),
-            boardStateBefore: JSON.parse(JSON.stringify(this.boardState))
+            boardStateBefore: JSON.parse(JSON.stringify(this.boardState)),
         };
 
         // Apply tiles to board
@@ -265,6 +265,9 @@ class GameState {
 
         // Update player score
         this.players[this.currentPlayerIndex].score += score;
+
+        // Capture board state after the turn
+        turn.boardStateAfter = JSON.parse(JSON.stringify(this.boardState));
         
         // Add to history
         this.turnHistory.push(turn);
@@ -276,21 +279,35 @@ class GameState {
     }
 
     // Undo last turn
-    undoLastTurn() {
+    async undoLastTurn() {
         if (this.turnHistory.length === 0) return false;
-        
-        const lastTurn = this.turnHistory.pop();
-        
-        // Restore board state
-        this.boardState = lastTurn.boardStateBefore;
-        
-        // Restore player state
-        this.players[lastTurn.playerIndex] = lastTurn.playerStateBefore;
-        
-        // Restore current player
-        this.currentPlayerIndex = lastTurn.playerIndex;
-        
-        return true;
+        if (!this.gameId) {
+            console.error('Cannot undo: gameId is null.');
+            return false;
+        }
+
+        try {
+            // Call API to delete the last turn from the server
+            await window.scrabbleAPI.deleteLastTurn(this.gameId);
+
+            // If successful, proceed with client-side state restoration
+            const lastTurn = this.turnHistory.pop();
+            
+            // Restore board state (using the state *before* the undone turn)
+            this.boardState = JSON.parse(JSON.stringify(lastTurn.boardStateBefore));
+            
+            // Restore player state (score)
+            this.players[lastTurn.playerIndex].score = lastTurn.playerStateBefore.score;
+            
+            // Restore current player
+            this.currentPlayerIndex = lastTurn.playerIndex;
+            
+            return true;
+
+        } catch (error) {
+            console.error('Failed to undo turn on server:', error);
+            throw error; // Re-throw the error for app.js to handle UI updates.
+        }
     }
 
     // Find existing word fragment at position

@@ -229,6 +229,17 @@ class ScrabbleAPI {
         return data;
     }
 
+    async deleteLastTurn(gameId) {
+        const data = await this.request(`/games/${gameId}/turns/last`, {
+            method: 'DELETE'
+        });
+
+        // Invalidate game cache since it's been updated
+        localStorage.removeItem(`scrabble_cache__games_${gameId}`);
+        
+        return data;
+    }
+
     // Dictionary management
     async getDictionaries() {
         return await this.request('/dictionaries');
