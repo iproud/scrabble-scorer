@@ -158,7 +158,7 @@ class GameState {
             let letterScore = isBlank ? 0 : (this.letterScores[letter] || 0);
             
             if (!existingTile) {
-                breakdown.newPlacements.push({ row, col, letter, isBlank });
+                breakdown.newPlacements.push({ row, col, letter, isBlank, wordIndex: i });
                 const bonus = this.boardLayout[row][col];
                 if (bonus === 'DLS') letterScore *= 2;
                 if (bonus === 'TLS') letterScore *= 3;
@@ -217,12 +217,34 @@ class GameState {
         // Now trace forward from the determined start to reconstruct the full word
         let currentR = traceBackR;
         let currentC = traceBackC;
-        while (currentR < 15 && currentC < 15 && this.boardState[currentR] && this.boardState[currentR][currentC]) {
-            wordParts.push({ ...this.boardState[currentR][currentC], row: currentR, col: currentC });
-            currentR = perpDirection === 'down' ? currentR + 1 : currentR;
-            currentC = perpDirection === 'across' ? currentC + 1 : currentC;
+        while (currentR < 15 && currentC < 15) {
+            // Check if there's a tile at the current position (either existing or the new placement)
+            let tile = null;
+            if (this.boardState[currentR] && this.boardState[currentR][currentC]) {
+                tile = this.boardState[currentR][currentC];
+            } else if (currentR === row && currentC === col) {
+                // This is the new tile placement - include it in the word
+                // We need to find the letter for this placement from the current word being played
+                tile = { letter: this.getLetterAtPlacement(placement), isBlank: placement.isBlank };
+            }
+            
+            if (tile) {
+                wordParts.push({ ...tile, row: currentR, col: currentC });
+                currentR = perpDirection === 'down' ? currentR + 1 : currentR;
+                currentC = perpDirection === 'across' ? currentC + 1 : currentC;
+            } else {
+                break; // No more tiles in this direction
+            }
         }
         return wordParts;
+    }
+
+    // Helper method to get the letter at a specific placement during scoring calculation
+    getLetterAtPlacement(placement) {
+        // This method should be called during scoring calculation when we need to know
+        // what letter is being placed at a specific position
+        // The placement object should contain the letter information
+        return placement.letter || '';
     }
 
     // Score secondary (cross) words
@@ -258,6 +280,12 @@ class GameState {
         if (newPlacements.length === 0) {
             return { valid: false, error: "You must place at least one new tile." };
         }
+
+        // Check tile availability
+        const tileValidation = this.validateTileAvailability(newPlacements, blankIndices);
+        if (!tileValidation.valid) {
+            return tileValidation;
+        }
         
         const hasExistingTiles = this.boardState.some(row => row.some(cell => cell !== null));
         if (!hasExistingTiles) {
@@ -284,6 +312,51 @@ class GameState {
             if (!usesExistingTile && !isAdjacentToExisting) {
                 return { valid: false, error: "New words must connect to existing words." };
             }
+        }
+
+        return { valid: true };
+    }
+
+    // Validate tile availability for new placements
+    validateTileAvailability(newPlacements, blankIndices) {
+        const requiredTiles = {};
+        
+        // Count required tiles for new placements
+        newPlacements.forEach(placement => {
+            const letter = placement.letter;
+            const isBlank = blankIndices.has(placement.wordIndex);
+            
+            if (isBlank) {
+                requiredTiles['BLANK'] = (requiredTiles['BLANK'] || 0) + 1;
+            } else {
+                requiredTiles[letter] = (requiredTiles[letter] || 0) + 1;
+            }
+        });
+
+        // Check if required tiles are available
+        const missingTiles = [];
+        for (const [letter, needed] of Object.entries(requiredTiles)) {
+            const available = this.tileSupply[letter] || 0;
+            if (available < needed) {
+                missingTiles.push({
+                    letter,
+                    needed,
+                    available,
+                    shortage: needed - available
+                });
+            }
+        }
+
+        if (missingTiles.length > 0) {
+            const missingTileMessages = missingTiles.map(tile => 
+                `${tile.letter}: ${tile.shortage} needed (0 available)`
+            ).join(', ');
+            
+            return {
+                valid: false,
+                error: `Not enough tiles in bag. Missing: ${missingTileMessages}`,
+                tileConflicts: missingTiles
+            };
         }
 
         return { valid: true };

@@ -782,13 +782,25 @@ class ScrabbleApp {
             breakdown.bingoBonus = 50; // Set bingoBonus in breakdown for display
         }
         
+        // Check tile availability for UI feedback
+        if (breakdown.newPlacements.length > 0) {
+            const tileValidation = window.gameState.validateTileAvailability(
+                breakdown.newPlacements, 
+                window.gameState.blankTileIndices
+            );
+            breakdown.tileConflicts = tileValidation.tileConflicts;
+            breakdown.tileError = tileValidation.valid ? null : tileValidation.error;
+        }
+        
         this.turnScoreDisplay.textContent = finalScore;
         this.renderScoreBreakdown(breakdown);
-        this.updateTileDisplay();
+        this.updateTileDisplay(breakdown.tileConflicts);
 
         // Show/hide submit button
-        if (window.gameState.wordDirection && this.currentWord && 
-            breakdown.newPlacements.length > 0 && !breakdown.error) {
+        const canSubmit = window.gameState.wordDirection && this.currentWord && 
+            breakdown.newPlacements.length > 0 && !breakdown.error && !breakdown.tileError;
+            
+        if (canSubmit) {
             this.submitTurnBtn.classList.remove('hidden');
         } else {
             this.submitTurnBtn.classList.add('hidden');
@@ -796,10 +808,18 @@ class ScrabbleApp {
         this.updateCancelAndUndoButtonVisibility(); // Update button visibility
     }
 
-    updateTileDisplay() {
+    updateTileDisplay(tileConflicts = null) {
         this.tileDisplayContainer.innerHTML = '';
         const word = this.currentWord;
         if (window.gameState.selectedCell.row === null || !word) return; // Corrected condition
+
+        // Create a map of conflicting tiles for quick lookup
+        const conflictMap = new Map();
+        if (tileConflicts) {
+            tileConflicts.forEach(conflict => {
+                conflictMap.set(conflict.letter, conflict);
+            });
+        }
 
         for (let i = 0; i < word.length; i++) {
             const letter = word[i];
@@ -814,6 +834,7 @@ class ScrabbleApp {
 
             let score = window.gameState.letterScores[letter] || 0;
             let isExisting = false;
+            let isBlank = window.gameState.blankTileIndices.has(i);
             
             if (row < 15 && col < 15) {
                 const existingTile = window.gameState.boardState[row][col];
@@ -828,7 +849,17 @@ class ScrabbleApp {
                         tile.textContent = letter;
                     }
                 } else {
-                    tile.classList.add('display-tile-new');
+                    // Check if this new tile has a tile availability conflict
+                    const tileLetter = isBlank ? 'BLANK' : letter;
+                    const hasTileConflict = conflictMap.has(tileLetter);
+                    
+                    if (hasTileConflict) {
+                        tile.classList.add('display-tile-conflict');
+                        tile.title = `Not enough ${tileLetter} tiles in bag (need ${conflictMap.get(tileLetter).needed}, have ${conflictMap.get(tileLetter).available})`;
+                    } else {
+                        tile.classList.add('display-tile-new');
+                    }
+                    
                     tile.textContent = letter;
                     tile.addEventListener('click', () => {
                         if (window.gameState.blankTileIndices.has(i)) {
@@ -844,7 +875,7 @@ class ScrabbleApp {
                 tile.textContent = letter;
             }
 
-            if (!isExisting && window.gameState.blankTileIndices.has(i)) {
+            if (!isExisting && isBlank) {
                 tile.classList.add('blank-active');
                 score = 0;
             }
