@@ -120,13 +120,14 @@ class GameState {
         return this.players[this.currentPlayerIndex] || null;
     }
 
-    // Calculate turn score
+    // Calculate turn score with comprehensive word detection
     calculateTurnScore(word, startRow, startCol, direction, blankIndices = new Set()) {
         const breakdown = {
-            mainWord: { word: word, score: 0 },
+            mainWord: { word: '', score: 0 },
             secondaryWords: [],
             bingoBonus: 0,
             newPlacements: [],
+            allScoredWords: [],
             error: null
         };
 
@@ -134,68 +135,324 @@ class GameState {
             return { score: 0, breakdown };
         }
 
-        let mainWordScore = 0;
-        let mainWordMultiplier = 1;
+        // Step 1: Identify new tile placements
+        const newPlacements = this.identifyNewPlacements(word, startRow, startCol, direction, blankIndices);
+        breakdown.newPlacements = newPlacements;
 
-        // Main Word Calculation
+        if (newPlacements.length === 0) {
+            breakdown.error = "You must place at least one new tile.";
+            return { score: 0, breakdown };
+        }
+
+        // Step 2: Detect all words formed by this move
+        const detectedWords = this.detectAllWords(newPlacements, direction);
+        breakdown.allScoredWords = detectedWords;
+
+        // Step 3: Separate primary word from secondary words
+        const primaryWord = detectedWords.find(w => w.isPrimary);
+        const secondaryWords = detectedWords.filter(w => !w.isPrimary);
+
+        if (!primaryWord) {
+            breakdown.error = "No primary word detected.";
+            return { score: 0, breakdown };
+        }
+
+        // Step 4: Calculate scores for all words
+        let totalScore = 0;
+
+        // Score primary word
+        const primaryScore = this.calculateWordScore(primaryWord, newPlacements);
+        breakdown.mainWord = { word: primaryWord.word, score: primaryScore };
+        totalScore += primaryScore;
+
+        // Score secondary words
+        for (const secondaryWord of secondaryWords) {
+            const secondaryScore = this.calculateWordScore(secondaryWord, newPlacements);
+            breakdown.secondaryWords.push({ word: secondaryWord.word, score: secondaryScore });
+            totalScore += secondaryScore;
+        }
+
+        // Step 5: Check for Bingo Bonus
+        if (newPlacements.length === 7) {
+            breakdown.bingoBonus = 50;
+            breakdown.eligibleForBingo = true;
+            totalScore += 50;
+        } else {
+            breakdown.eligibleForBingo = false;
+        }
+
+        return { score: totalScore, breakdown };
+    }
+
+    // Identify which tiles are new placements vs existing tiles
+    identifyNewPlacements(word, startRow, startCol, direction, blankIndices) {
+        const placements = [];
+        
         for (let i = 0; i < word.length; i++) {
             const letter = word[i];
             const row = direction === 'across' ? startRow : startRow + i;
             const col = direction === 'across' ? startCol + i : startCol;
 
             if (row >= 15 || col >= 15) {
-                breakdown.error = "Word is off the board.";
-                return { score: 0, breakdown };
+                continue; // Skip invalid positions
             }
             
             const existingTile = this.boardState[row][col];
-            if (existingTile && existingTile.letter !== letter) {
-                breakdown.error = "Word conflicts with existing tiles.";
-                return { score: 0, breakdown };
-            }
-            
             const isBlank = blankIndices.has(i);
-            let letterScore = isBlank ? 0 : (this.letterScores[letter] || 0);
             
             if (!existingTile) {
-                breakdown.newPlacements.push({ row, col, letter, isBlank, wordIndex: i });
-                const bonus = this.boardLayout[row][col];
+                placements.push({ 
+                    row, 
+                    col, 
+                    letter, 
+                    isBlank, 
+                    wordIndex: i,
+                    isNew: true 
+                });
+            } else {
+                // This is an existing tile that's part of the word
+                placements.push({ 
+                    row, 
+                    col, 
+                    letter: existingTile.letter, 
+                    isBlank: existingTile.isBlank, 
+                    wordIndex: i,
+                    isNew: false 
+                });
+            }
+        }
+        
+        return placements;
+    }
+
+    // Detect all words formed by the new placements
+    detectAllWords(newPlacements, primaryDirection) {
+        const detectedWords = [];
+        const processedWords = new Set(); // Avoid duplicates
+
+        // Step 1: Find the primary word (the complete word along the direction of play)
+        const primaryWord = this.findPrimaryWord(newPlacements, primaryDirection);
+        if (primaryWord && primaryWord.tiles.length > 1) {
+            const wordKey = `${primaryWord.word}-${primaryWord.startRow}-${primaryWord.startCol}-${primaryWord.direction}`;
+            if (!processedWords.has(wordKey)) {
+                processedWords.add(wordKey);
+                detectedWords.push(primaryWord);
+            }
+        }
+
+        // Step 2: Find secondary words (true perpendicular words formed by new tiles)
+        for (const placement of newPlacements.filter(p => p.isNew)) {
+            const secondaryWord = this.findSecondaryWord(placement, primaryDirection, newPlacements);
+            if (secondaryWord && secondaryWord.tiles.length > 1) {
+                // Only count as secondary word if it has at least one existing tile
+                // (purely new perpendicular words don't count in Scrabble)
+                const hasExistingTile = secondaryWord.tiles.some(tile => !tile.isNew);
+                if (hasExistingTile) {
+                    const wordKey = `${secondaryWord.word}-${secondaryWord.startRow}-${secondaryWord.startCol}-${secondaryWord.direction}`;
+                    if (!processedWords.has(wordKey)) {
+                        processedWords.add(wordKey);
+                        detectedWords.push(secondaryWord);
+                    }
+                }
+            }
+        }
+
+        return detectedWords;
+    }
+
+    // Find the primary word along the direction of play
+    findPrimaryWord(newPlacements, direction) {
+        if (newPlacements.length === 0) return null;
+
+        // Create a temporary board state that includes the new placements
+        const tempBoard = this.boardState.map(row => [...row]);
+        for (const placement of newPlacements) {
+            if (placement.row >= 0 && placement.row < 15 && placement.col >= 0 && placement.col < 15) {
+                tempBoard[placement.row][placement.col] = {
+                    letter: placement.letter,
+                    isBlank: placement.isBlank
+                };
+            }
+        }
+
+        // Find the minimum and maximum coordinates along the primary direction
+        let minCoord = Infinity, maxCoord = -Infinity;
+        let fixedCoord = null;
+
+        for (const placement of newPlacements) {
+            const coord = direction === 'across' ? placement.col : placement.row;
+            const otherCoord = direction === 'across' ? placement.row : placement.col;
+            
+            minCoord = Math.min(minCoord, coord);
+            maxCoord = Math.max(maxCoord, coord);
+            
+            if (fixedCoord === null) {
+                fixedCoord = otherCoord;
+            }
+        }
+
+        // Scan outward to find the complete word
+        // Scan backward
+        let currentCoord = minCoord;
+        while (currentCoord >= 0) {
+            const row = direction === 'across' ? fixedCoord : currentCoord;
+            const col = direction === 'across' ? currentCoord : fixedCoord;
+            
+            if (tempBoard[row] && tempBoard[row][col]) {
+                currentCoord--;
+            } else {
+                break;
+            }
+        }
+        const startCoord = currentCoord + 1;
+
+        // Scan forward and collect tiles
+        const tiles = [];
+        currentCoord = startCoord;
+        while (currentCoord < 15) {
+            const row = direction === 'across' ? fixedCoord : currentCoord;
+            const col = direction === 'across' ? currentCoord : fixedCoord;
+            
+            if (tempBoard[row] && tempBoard[row][col]) {
+                tiles.push({
+                    row,
+                    col,
+                    letter: tempBoard[row][col].letter,
+                    isBlank: tempBoard[row][col].isBlank,
+                    isNew: newPlacements.some(p => p.row === row && p.col === col)
+                });
+                currentCoord++;
+            } else {
+                break;
+            }
+        }
+
+        if (tiles.length === 0) return null;
+
+        const word = tiles.map(t => t.letter).join('');
+        const startRow = direction === 'across' ? fixedCoord : startCoord;
+        const startCol = direction === 'across' ? startCoord : fixedCoord;
+
+        return {
+            word,
+            direction,
+            startRow,
+            startCol,
+            tiles,
+            isPrimary: true
+        };
+    }
+
+    // Find secondary word perpendicular to a new tile placement
+    findSecondaryWord(placement, primaryDirection, newPlacements = null) {
+        const perpDirection = primaryDirection === 'across' ? 'down' : 'across';
+        const tiles = [];
+
+        // Create a temporary board state that includes the new placements
+        const tempBoard = this.boardState.map(row => [...row]);
+        if (newPlacements) {
+            for (const newPlacement of newPlacements) {
+                if (newPlacement.row >= 0 && newPlacement.row < 15 && newPlacement.col >= 0 && newPlacement.col < 15) {
+                    tempBoard[newPlacement.row][newPlacement.col] = {
+                        letter: newPlacement.letter,
+                        isBlank: newPlacement.isBlank
+                    };
+                }
+            }
+        } else {
+            // If no newPlacements provided, just add this single placement
+            if (placement.row >= 0 && placement.row < 15 && placement.col >= 0 && placement.col < 15) {
+                tempBoard[placement.row][placement.col] = {
+                    letter: placement.letter,
+                    isBlank: placement.isBlank
+                };
+            }
+        }
+
+        // Scan backward from the placement
+        let currentRow = placement.row;
+        let currentCol = placement.col;
+
+        while (true) {
+            const prevRow = perpDirection === 'down' ? currentRow - 1 : currentRow;
+            const prevCol = perpDirection === 'across' ? currentCol - 1 : currentCol;
+
+            if (prevRow >= 0 && prevCol >= 0 && 
+                tempBoard[prevRow] && tempBoard[prevRow][prevCol]) {
+                currentRow = prevRow;
+                currentCol = prevCol;
+            } else {
+                break;
+            }
+        }
+
+        const startRow = currentRow;
+        const startCol = currentCol;
+
+        // Scan forward and collect tiles
+        currentRow = startRow;
+        currentCol = startCol;
+
+        while (currentRow < 15 && currentCol < 15) {
+            if (tempBoard[currentRow] && tempBoard[currentRow][currentCol]) {
+                const isNew = newPlacements ? 
+                    newPlacements.some(p => p.row === currentRow && p.col === currentCol && p.isNew) :
+                    (currentRow === placement.row && currentCol === placement.col);
+
+                tiles.push({
+                    row: currentRow,
+                    col: currentCol,
+                    letter: tempBoard[currentRow][currentCol].letter,
+                    isBlank: tempBoard[currentRow][currentCol].isBlank,
+                    isNew: isNew
+                });
+
+                currentRow = perpDirection === 'down' ? currentRow + 1 : currentRow;
+                currentCol = perpDirection === 'across' ? currentCol + 1 : currentCol;
+            } else {
+                break;
+            }
+        }
+
+        if (tiles.length <= 1) return null; // Single tile doesn't form a word
+
+        const word = tiles.map(t => t.letter).join('');
+
+        return {
+            word,
+            direction: perpDirection,
+            startRow,
+            startCol,
+            tiles,
+            isPrimary: false
+        };
+    }
+
+    // Calculate score for a detected word
+    calculateWordScore(wordData, newPlacements) {
+        let score = 0;
+        let wordMultiplier = 1;
+
+        for (const tile of wordData.tiles) {
+            let letterScore = tile.isBlank ? 0 : (this.letterScores[tile.letter] || 0);
+
+            // Apply letter bonuses only for newly placed tiles
+            if (tile.isNew) {
+                const bonus = this.boardLayout[tile.row][tile.col];
                 if (bonus === 'DLS') letterScore *= 2;
                 if (bonus === 'TLS') letterScore *= 3;
-                if (bonus === 'DWS') mainWordMultiplier *= 2;
-                if (bonus === 'TWS') mainWordMultiplier *= 3;
+                if (bonus === 'DWS') wordMultiplier *= 2;
+                if (bonus === 'TWS') wordMultiplier *= 3;
             }
-            mainWordScore += letterScore;
-        }
-        mainWordScore *= mainWordMultiplier;
-        breakdown.mainWord.score = mainWordScore;
 
-        // Check for Bingo Bonus eligibility
-        if (breakdown.newPlacements.length === 7) {
-            breakdown.eligibleForBingo = true;
-        } else {
-            breakdown.eligibleForBingo = false;
+            score += letterScore;
         }
 
-        // Secondary Word Calculation
-        let totalSecondaryScore = 0;
-        for (const placement of breakdown.newPlacements) {
-            const perpWordParts = this.getPerpendicularWord(placement, direction);
-            if (perpWordParts.length > 1) {
-                const secondaryScore = this.scoreSecondaryWord(perpWordParts, placement);
-                const secondaryWord = perpWordParts.map(p => p.letter).join('');
-                breakdown.secondaryWords.push({ word: secondaryWord, score: secondaryScore });
-                totalSecondaryScore += secondaryScore;
-            }
-        }
-
-        let totalScore = mainWordScore + totalSecondaryScore;
-        
-        return { score: totalScore, breakdown };
+        return score * wordMultiplier;
     }
 
     // Get perpendicular word for cross-word scoring
-    getPerpendicularWord(placement, mainDirection) {
+    getPerpendicularWord(placement, mainDirection, currentWord, startRow, startCol) {
         const { row, col } = placement;
         const perpDirection = mainDirection === 'across' ? 'down' : 'across';
         let wordParts = [];
@@ -225,7 +482,8 @@ class GameState {
             } else if (currentR === row && currentC === col) {
                 // This is the new tile placement - include it in the word
                 // We need to find the letter for this placement from the current word being played
-                tile = { letter: this.getLetterAtPlacement(placement), isBlank: placement.isBlank };
+                const letter = this.getLetterAtPlacement(placement, currentWord, startRow, startCol, mainDirection);
+                tile = { letter, isBlank: placement.isBlank };
             }
             
             if (tile) {
@@ -240,10 +498,22 @@ class GameState {
     }
 
     // Helper method to get the letter at a specific placement during scoring calculation
-    getLetterAtPlacement(placement) {
-        // This method should be called during scoring calculation when we need to know
-        // what letter is being placed at a specific position
-        // The placement object should contain the letter information
+    getLetterAtPlacement(placement, currentWord, startRow, startCol, direction) {
+        // Calculate the position of this placement within the current word
+        let wordIndex = -1;
+        
+        if (direction === 'across') {
+            wordIndex = placement.col - startCol;
+        } else {
+            wordIndex = placement.row - startRow;
+        }
+        
+        // Return the letter at this position in the current word
+        if (wordIndex >= 0 && wordIndex < currentWord.length) {
+            return currentWord[wordIndex];
+        }
+        
+        // Fallback to placement letter if available
         return placement.letter || '';
     }
 

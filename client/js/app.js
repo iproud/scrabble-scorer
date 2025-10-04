@@ -845,7 +845,21 @@ class ScrabbleApp {
     updateTileDisplay(tileConflicts = null) {
         this.tileDisplayContainer.innerHTML = '';
         const word = this.currentWord;
-        if (window.gameState.selectedCell.row === null || !word) return; // Corrected condition
+        if (window.gameState.selectedCell.row === null || !word) return;
+
+        // Get the scoring breakdown to detect cross-words
+        const { breakdown } = window.gameState.calculateTurnScore(
+            this.currentWord,
+            window.gameState.selectedCell.row,
+            window.gameState.selectedCell.col,
+            window.gameState.wordDirection,
+            window.gameState.blankTileIndices
+        );
+
+        // Get the primary word data to show ALL tiles in the primary word
+        const primaryWord = breakdown.allScoredWords ? breakdown.allScoredWords.find(w => w.isPrimary) : null;
+        
+        if (!primaryWord) return;
 
         // Create a map of conflicting tiles for quick lookup
         const conflictMap = new Map();
@@ -855,63 +869,52 @@ class ScrabbleApp {
             });
         }
 
-        for (let i = 0; i < word.length; i++) {
-            const letter = word[i];
-            const row = window.gameState.wordDirection === 'across' ? 
-                window.gameState.selectedCell.row : window.gameState.selectedCell.row + i;
-            const col = window.gameState.wordDirection === 'across' ? 
-                window.gameState.selectedCell.col + i : window.gameState.selectedCell.col;
-
+        // Display ALL tiles from the primary word (both new and existing)
+        for (let i = 0; i < primaryWord.tiles.length; i++) {
+            const tileData = primaryWord.tiles[i];
             const tile = document.createElement('div');
             tile.classList.add('display-tile');
             tile.dataset.index = i;
 
-            let score = window.gameState.letterScores[letter] || 0;
-            let isExisting = false;
-            let isBlank = window.gameState.blankTileIndices.has(i);
+            let score = window.gameState.letterScores[tileData.letter] || 0;
             
-            if (row < 15 && col < 15) {
-                const existingTile = window.gameState.boardState[row][col];
-                if (existingTile) {
-                    isExisting = true;
-                    if (existingTile.letter === letter) {
-                        tile.classList.add('display-tile-existing');
-                        tile.textContent = existingTile.letter;
-                        score = existingTile.isBlank ? 0 : window.gameState.letterScores[existingTile.letter] || 0;
-                    } else {
-                        tile.classList.add('display-tile-conflict');
-                        tile.textContent = letter;
-                    }
+            if (tileData.isNew) {
+                // This is a new tile placement
+                const tileLetter = tileData.isBlank ? 'BLANK' : tileData.letter;
+                const hasTileConflict = conflictMap.has(tileLetter);
+                
+                if (hasTileConflict) {
+                    tile.classList.add('display-tile-conflict');
+                    tile.title = `Not enough ${tileLetter} tiles in bag (need ${conflictMap.get(tileLetter).needed}, have ${conflictMap.get(tileLetter).available})`;
                 } else {
-                    // Check if this new tile has a tile availability conflict
-                    const tileLetter = isBlank ? 'BLANK' : letter;
-                    const hasTileConflict = conflictMap.has(tileLetter);
-                    
-                    if (hasTileConflict) {
-                        tile.classList.add('display-tile-conflict');
-                        tile.title = `Not enough ${tileLetter} tiles in bag (need ${conflictMap.get(tileLetter).needed}, have ${conflictMap.get(tileLetter).available})`;
-                    } else {
-                        tile.classList.add('display-tile-new');
-                    }
-                    
-                    tile.textContent = letter;
-                    tile.addEventListener('click', () => {
-                        if (window.gameState.blankTileIndices.has(i)) {
-                            window.gameState.blankTileIndices.delete(i);
+                    tile.classList.add('display-tile-new');
+                }
+                
+                tile.textContent = tileData.letter;
+                
+                // Add click handler for blank tiles
+                if (tileData.isBlank) {
+                    tile.classList.add('blank-active');
+                    score = 0;
+                }
+                
+                tile.addEventListener('click', () => {
+                    // Find the position of this tile in the word input
+                    const wordIndex = this.findTilePositionInPrimaryWord(tileData, primaryWord.tiles);
+                    if (wordIndex !== -1) {
+                        if (window.gameState.blankTileIndices.has(wordIndex)) {
+                            window.gameState.blankTileIndices.delete(wordIndex);
                         } else {
-                            window.gameState.blankTileIndices.add(i);
+                            window.gameState.blankTileIndices.add(wordIndex);
                         }
                         this.updateTurnState();
-                    });
-                }
+                    }
+                });
             } else {
-                tile.classList.add('display-tile-conflict');
-                tile.textContent = letter;
-            }
-
-            if (!isExisting && isBlank) {
-                tile.classList.add('blank-active');
-                score = 0;
+                // This is an existing tile that's part of the primary word
+                tile.classList.add('display-tile-existing'); // Green for existing tiles in scored words
+                tile.textContent = tileData.letter;
+                score = tileData.isBlank ? 0 : (window.gameState.letterScores[tileData.letter] || 0);
             }
 
             const scoreSpan = document.createElement('span');
@@ -921,6 +924,44 @@ class ScrabbleApp {
             
             this.tileDisplayContainer.appendChild(tile);
         }
+    }
+
+    // Helper method to find the position of a tile in the primary word
+    findTilePositionInPrimaryWord(tileData, primaryWordTiles) {
+        for (let i = 0; i < primaryWordTiles.length; i++) {
+            const tile = primaryWordTiles[i];
+            if (tile.row === tileData.row && tile.col === tileData.col) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // Helper method to check if an existing tile is part of a cross-word
+    isExistingTilePartOfCrossWord(row, col, allScoredWords) {
+        if (!allScoredWords) return false;
+        
+        for (const wordData of allScoredWords) {
+            if (!wordData.isPrimary) {
+                // This is a secondary/cross-word
+                for (const tile of wordData.tiles) {
+                    if (tile.row === row && tile.col === col) {
+                        return true; // This existing tile is part of a cross-word
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    // Helper method to find the position of a tile in the main word
+    findTilePositionInMainWord(tile, newPlacements) {
+        for (const placement of newPlacements) {
+            if (placement.row === tile.row && placement.col === tile.col && placement.isNew) {
+                return placement.wordIndex;
+            }
+        }
+        return -1;
     }
 
     renderScoreBreakdown(breakdown) {
