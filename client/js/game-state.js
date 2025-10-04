@@ -532,6 +532,94 @@ class GameState {
             totalRemaining: totalRemaining
         };
     }
+
+    // Calculate remaining tiles from the bag (tiles that were never played)
+    calculateRemainingTiles() {
+        const remainingTiles = [];
+        
+        // Create a copy of the initial tile supply
+        const initialSupply = {
+            'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 3, 'H': 2, 'I': 9, 'J': 1,
+            'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 4, 'T': 6,
+            'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, 'BLANK': 2
+        };
+        
+        // Subtract tiles that are currently on the board
+        for (let r = 0; r < 15; r++) {
+            for (let c = 0; c < 15; c++) {
+                const tile = this.boardState[r][c];
+                if (tile) {
+                    if (tile.isBlank) {
+                        initialSupply['BLANK']--;
+                    } else {
+                        initialSupply[tile.letter]--;
+                    }
+                }
+            }
+        }
+        
+        // The remaining tiles in initialSupply are the tiles left in the bag
+        for (const [letter, count] of Object.entries(initialSupply)) {
+            for (let i = 0; i < count; i++) {
+                if (letter !== 'BLANK') {
+                    remainingTiles.push(letter);
+                } else {
+                    remainingTiles.push(''); // Represent blank tiles as empty strings
+                }
+            }
+        }
+        
+        return remainingTiles;
+    }
+
+    // Calculate final scores with end-game tile deductions and bonuses
+    calculateFinalScores(endingPlayerId, tileDistribution) {
+        const finalScores = {};
+        const players = this.players;
+        
+        // Start with current scores
+        players.forEach(player => {
+            finalScores[player.id] = player.score;
+        });
+        
+        // Calculate total bonus for ending player (sum of all remaining tiles)
+        let totalBonus = 0;
+        const remainingTiles = this.calculateRemainingTiles();
+        remainingTiles.forEach(tile => {
+            if (tile === '') {
+                // Blank tile has no points
+                return;
+            }
+            totalBonus += this.letterScores[tile] || 0;
+        });
+        
+        // Apply bonus to ending player
+        finalScores[endingPlayerId] += totalBonus;
+        
+        // Apply deductions to other players based on assigned tiles
+        for (const [playerId, tiles] of Object.entries(tileDistribution)) {
+            if (playerId === endingPlayerId) continue; // Skip ending player
+            
+            let deduction = 0;
+            tiles.forEach(tile => {
+                if (tile === '') {
+                    // Blank tile has no points
+                    return;
+                }
+                deduction += this.letterScores[tile] || 0;
+            });
+            
+            finalScores[playerId] -= deduction;
+        }
+        
+        // Special case for 2-player games: ending player gets bonus, other player gets same amount deducted
+        if (players.length === 2) {
+            const otherPlayerId = players.find(p => p.id !== endingPlayerId).id;
+            finalScores[otherPlayerId] -= totalBonus;
+        }
+        
+        return finalScores;
+    }
 }
 
 // Create global game state instance
