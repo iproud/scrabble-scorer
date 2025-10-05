@@ -35,7 +35,7 @@ npm install
 The app is configured to run on port 3037. You can verify this in `server/server.js`:
 
 ```javascript
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3037;
 ```
 
 To run on port 3037, you'll set the PORT environment variable.

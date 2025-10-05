@@ -4,7 +4,7 @@ const path = require('path');
 const { getDatabase, initializeDatabase } = require('./database/init');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3037;
 
 // Middleware
 app.use(cors());
