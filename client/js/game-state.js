@@ -173,7 +173,8 @@ class GameState {
         }
 
         // Step 5: Check for Bingo Bonus
-        if (newPlacements.length === 7) {
+        const newlyPlacedTiles = newPlacements.filter(p => p.isNew).length;
+        if (newlyPlacedTiles === 7) {
             breakdown.bingoBonus = 50;
             breakdown.eligibleForBingo = true;
             totalScore += 50;
