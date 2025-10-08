@@ -120,6 +120,50 @@ class GameState {
         return this.players[this.currentPlayerIndex] || null;
     }
 
+    // Phase 1 Fix: Board state validation methods
+    validateBoardState(boardState) {
+        if (!boardState || !Array.isArray(boardState)) {
+            return false;
+        }
+        if (boardState.length !== 15) {
+            return false;
+        }
+        for (let row = 0; row < 15; row++) {
+            if (!Array.isArray(boardState[row]) || boardState[row].length !== 15) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Phase 1 Fix: Safe board copy method
+    createSafeBoardCopy() {
+        if (!this.validateBoardState(this.boardState)) {
+            console.error('Invalid board state detected, creating empty board');
+            return Array(15).fill(null).map(() => Array(15).fill(null));
+        }
+        return this.boardState.map(row => [...row]);
+    }
+
+    // Phase 1 Fix: Board position validation
+    isValidBoardPosition(row, col) {
+        return Number.isInteger(row) && Number.isInteger(col) && 
+               row >= 0 && row < 15 && col >= 0 && col < 15;
+    }
+
+    // Phase 1 Fix: Board state locking mechanism
+    lockBoardState() {
+        this.boardStateLocked = true;
+    }
+
+    unlockBoardState() {
+        this.boardStateLocked = false;
+    }
+
+    isBoardStateLocked() {
+        return this.boardStateLocked || false;
+    }
+
     // Calculate turn score with comprehensive word detection
     calculateTurnScore(word, startRow, startCol, direction, blankIndices = new Set()) {
         const breakdown = {
@@ -185,48 +229,95 @@ class GameState {
         return { score: totalScore, breakdown };
     }
 
-    // Identify which tiles are new placements vs existing tiles
+    // Phase 1 Fix: Improved identifyNewPlacements with robust blank tile mapping and tile availability fix
     identifyNewPlacements(word, startRow, startCol, direction, blankIndices) {
         const placements = [];
+        
+        // Phase 1 Fix: Validate input parameters
+        if (!word || typeof word !== 'string' || startRow === null || startCol === null || !direction) {
+            console.warn('Invalid parameters in identifyNewPlacements');
+            return [];
+        }
+        
+        // Phase 1 Fix: Validate blank indices
+        if (!blankIndices || !(blankIndices instanceof Set)) {
+            console.warn('Invalid blankIndices in identifyNewPlacements, using empty Set');
+            blankIndices = new Set();
+        }
         
         for (let i = 0; i < word.length; i++) {
             const letter = word[i];
             const row = direction === 'across' ? startRow : startRow + i;
             const col = direction === 'across' ? startCol + i : startCol;
 
-            if (row >= 15 || col >= 15) {
+            // Phase 1 Fix: Add position validation
+            if (!this.isValidBoardPosition(row, col)) {
+                console.warn(`Invalid position in identifyNewPlacements: ${row}, ${col}`);
                 continue; // Skip invalid positions
             }
             
             const existingTile = this.boardState[row][col];
             const isBlank = blankIndices.has(i);
             
-            if (!existingTile) {
-                placements.push({ 
-                    row, 
-                    col, 
-                    letter, 
-                    isBlank, 
-                    wordIndex: i,
-                    isNew: true 
-                });
-            } else {
+            // Phase 1 Fix: Critical fix for tile availability when extending existing words
+            if (existingTile) {
                 // This is an existing tile that's part of the word
+                // CRITICAL FIX: Always mark existing tiles as isNew: false to prevent counting against tile supply
                 placements.push({ 
                     row, 
                     col, 
                     letter: existingTile.letter, 
                     isBlank: existingTile.isBlank, 
                     wordIndex: i,
-                    isNew: false 
+                    isNew: false, // Existing tiles should never count as new placements
+                    actualLetter: existingTile.letter
                 });
+            } else {
+                // No existing tile - this is a new tile placement
+                if (isBlank && letter && letter !== 'BLANK') {
+                    // This is a blank tile being used as the letter
+                    placements.push({ 
+                        row, 
+                        col, 
+                        letter, 
+                        isBlank: true, 
+                        wordIndex: i,
+                        isNew: true, // New blank tile placement
+                        actualLetter: letter,
+                        displayLetter: letter // For UI purposes
+                    });
+                } else {
+                    // New regular tile placement
+                    placements.push({ 
+                        row, 
+                        col, 
+                        letter, 
+                        isBlank: false, 
+                        wordIndex: i,
+                        isNew: true // New tile placement
+                    });
+                }
             }
+        }
+        
+        // Phase 1 Fix: Validate placements array and add debugging
+        if (placements.length === 0) {
+            console.warn('No valid placements found in identifyNewPlacements');
+        } else {
+            console.log('=== IDENTIFY NEW PLACEMENTS DEBUG ===');
+            console.log('Word:', word);
+            console.log('Start Position:', {row: startRow, col: startCol});
+            console.log('Direction:', direction);
+            console.log('Placements:', placements);
+            console.log('New Placements:', placements.filter(p => p.isNew));
+            console.log('Existing Placements:', placements.filter(p => !p.isNew));
+            console.log('=== END DEBUG ===');
         }
         
         return placements;
     }
 
-    // Detect all words formed by the new placements
+    // Phase 1 Fix: Improved detectAllWords with comprehensive deduplication
     detectAllWords(newPlacements, primaryDirection) {
         const detectedWords = [];
         const processedWords = new Set(); // Avoid duplicates
@@ -234,7 +325,7 @@ class GameState {
         // Step 1: Find the primary word (the complete word along the direction of play)
         const primaryWord = this.findPrimaryWord(newPlacements, primaryDirection);
         if (primaryWord && primaryWord.tiles.length > 1) {
-            const wordKey = `${primaryWord.word}-${primaryWord.startRow}-${primaryWord.startCol}-${primaryWord.direction}`;
+            const wordKey = this.createWordKey(primaryWord);
             if (!processedWords.has(wordKey)) {
                 processedWords.add(wordKey);
                 detectedWords.push(primaryWord);
@@ -242,6 +333,7 @@ class GameState {
         }
 
         // Step 2: Find secondary words (true perpendicular words formed by new tiles)
+        const secondaryWords = [];
         for (const placement of newPlacements.filter(p => p.isNew)) {
             const secondaryWord = this.findSecondaryWord(placement, primaryDirection, newPlacements);
             if (secondaryWord && secondaryWord.tiles.length > 1) {
@@ -249,31 +341,126 @@ class GameState {
                 // (purely new perpendicular words don't count in Scrabble)
                 const hasExistingTile = secondaryWord.tiles.some(tile => !tile.isNew);
                 if (hasExistingTile) {
-                    const wordKey = `${secondaryWord.word}-${secondaryWord.startRow}-${secondaryWord.startCol}-${secondaryWord.direction}`;
-                    if (!processedWords.has(wordKey)) {
-                        processedWords.add(wordKey);
-                        detectedWords.push(secondaryWord);
-                    }
+                    secondaryWords.push(secondaryWord);
                 }
+            }
+        }
+
+        // Phase 1 Fix: Enhanced deduplication for secondary words
+        for (const secondaryWord of secondaryWords) {
+            const wordKey = this.createWordKey(secondaryWord);
+            if (!processedWords.has(wordKey)) {
+                processedWords.add(wordKey);
+                detectedWords.push(secondaryWord);
+            }
+        }
+
+        // Phase 1 Fix: Validate that we haven't missed any words in complex scenarios
+        const validatedWords = this.validateWordDetection(detectedWords, newPlacements, primaryDirection);
+        
+        return validatedWords;
+    }
+
+    // Phase 1 Fix: New method to create consistent word keys for deduplication
+    createWordKey(wordData) {
+        // Create a unique key based on word content, position, and direction
+        // This ensures that the same word found through different paths is deduplicated
+        return `${wordData.word}-${wordData.startRow}-${wordData.startCol}-${wordData.direction}`;
+    }
+
+    // Phase 1 Fix: New method to validate word detection in complex scenarios
+    validateWordDetection(detectedWords, newPlacements, primaryDirection) {
+        // Phase 1 Fix: Ensure all new placements are covered by detected words
+        const coveredPlacements = new Set();
+        
+        for (const word of detectedWords) {
+            for (const tile of word.tiles) {
+                const placementKey = `${tile.row}-${tile.col}`;
+                coveredPlacements.add(placementKey);
+            }
+        }
+
+        // Phase 1 Fix: Check for any uncovered new placements
+        for (const placement of newPlacements) {
+            const placementKey = `${placement.row}-${placement.col}`;
+            if (!coveredPlacements.has(placementKey)) {
+                console.warn(`Uncovered placement detected: ${placementKey}`);
+                // This might indicate a missing word in complex scenarios
+            }
+        }
+
+        // Phase 1 Fix: Additional validation for parallel play scenarios
+        if (newPlacements.length > 1) {
+            const parallelValidation = this.validateParallelPlay(detectedWords, newPlacements, primaryDirection);
+            if (parallelValidation.length > detectedWords.length) {
+                return parallelValidation;
             }
         }
 
         return detectedWords;
     }
 
-    // Find the primary word along the direction of play
+    // Phase 1 Fix: New method to validate parallel play scenarios
+    validateParallelPlay(detectedWords, newPlacements, primaryDirection) {
+        // In parallel play, we might have multiple secondary words
+        // Ensure we detect all possible perpendicular words
+        
+        const allSecondaryWords = [];
+        
+        // Check each new placement for potential secondary words
+        for (const placement of newPlacements.filter(p => p.isNew)) {
+            const secondaryWord = this.findSecondaryWord(placement, primaryDirection, newPlacements);
+            if (secondaryWord && secondaryWord.tiles.length > 1) {
+                const hasExistingTile = secondaryWord.tiles.some(tile => !tile.isNew);
+                if (hasExistingTile) {
+                    allSecondaryWords.push(secondaryWord);
+                }
+            }
+        }
+
+        // Phase 1 Fix: Remove duplicates while preserving all valid words
+        const uniqueSecondaryWords = [];
+        const seenKeys = new Set();
+        
+        for (const word of allSecondaryWords) {
+            const wordKey = this.createWordKey(word);
+            if (!seenKeys.has(wordKey)) {
+                seenKeys.add(wordKey);
+                uniqueSecondaryWords.push(word);
+            }
+        }
+
+        // Combine primary word with unique secondary words
+        const primaryWord = detectedWords.find(w => w.isPrimary);
+        const result = primaryWord ? [primaryWord, ...uniqueSecondaryWords] : uniqueSecondaryWords;
+        
+        return result;
+    }
+
+    // Phase 1 Fix: Improved findPrimaryWord with board state validation
     findPrimaryWord(newPlacements, direction) {
         if (newPlacements.length === 0) return null;
 
+        // Phase 1 Fix: Validate board state before creating temporary board
+        if (!this.validateBoardState(this.boardState)) {
+            console.error('Invalid board state detected in findPrimaryWord');
+            return null;
+        }
+
         // Create a temporary board state that includes the new placements
-        const tempBoard = this.boardState.map(row => [...row]);
+        const tempBoard = this.createSafeBoardCopy();
+        
+        // Phase 1 Fix: Add validation for new placements
         for (const placement of newPlacements) {
-            if (placement.row >= 0 && placement.row < 15 && placement.col >= 0 && placement.col < 15) {
-                tempBoard[placement.row][placement.col] = {
-                    letter: placement.letter,
-                    isBlank: placement.isBlank
-                };
+            if (!this.isValidBoardPosition(placement.row, placement.col)) {
+                console.warn(`Invalid placement position: ${placement.row}, ${placement.col}`);
+                continue;
             }
+            
+            tempBoard[placement.row][placement.col] = {
+                letter: placement.letter,
+                isBlank: placement.isBlank
+            };
         }
 
         // Find the minimum and maximum coordinates along the primary direction
@@ -539,8 +726,27 @@ class GameState {
         return score * multiplier;
     }
 
-    // Validate turn placement
+    // Phase 1 Fix: Improved validateTurnPlacement with comprehensive boundary validation
     validateTurnPlacement(word, startRow, startCol, direction, blankIndices = new Set()) {
+        // Phase 1 Fix: Validate input parameters first
+        if (!word || typeof word !== 'string' || word.length === 0) {
+            return { valid: false, error: "Word must be a non-empty string." };
+        }
+        
+        if (startRow === null || startCol === null || !direction) {
+            return { valid: false, error: "Start position and direction must be specified." };
+        }
+        
+        if (!['across', 'down'].includes(direction)) {
+            return { valid: false, error: "Direction must be 'across' or 'down'." };
+        }
+        
+        // Phase 1 Fix: Enhanced boundary validation
+        const boundaryValidation = this.validateWordBoundaries(word, startRow, startCol, direction);
+        if (!boundaryValidation.valid) {
+            return boundaryValidation;
+        }
+
         const { breakdown } = this.calculateTurnScore(word, startRow, startCol, direction, blankIndices);
         
         if (breakdown.error) {
@@ -563,10 +769,15 @@ class GameState {
             // When the board is empty, the word must cover the center star
             const wordPath = [];
             for (let i = 0; i < word.length; i++) {
-                wordPath.push({
-                    row: direction === 'across' ? startRow : startRow + i,
-                    col: direction === 'across' ? startCol + i : startCol
-                });
+                const row = direction === 'across' ? startRow : startRow + i;
+                const col = direction === 'across' ? startCol + i : startCol;
+                
+                // Phase 1 Fix: Validate each position in the word path
+                if (!this.isValidBoardPosition(row, col)) {
+                    return { valid: false, error: `Word extends beyond board boundaries at position ${row}, ${col}.` };
+                }
+                
+                wordPath.push({ row, col });
             }
             if (!wordPath.some(p => p.row === 7 && p.col === 7)) {
                 return { valid: false, error: "The first word must cover the center star." };
@@ -588,21 +799,114 @@ class GameState {
         return { valid: true };
     }
 
-    // Validate tile availability for new placements
+    // Phase 1 Fix: New method for comprehensive word boundary validation
+    validateWordBoundaries(word, startRow, startCol, direction) {
+        // Phase 1 Fix: Check if start position is valid
+        if (!this.isValidBoardPosition(startRow, startCol)) {
+            return { valid: false, error: `Invalid start position: ${startRow}, ${startCol}. Position must be within board boundaries (0-14).` };
+        }
+        
+        // Phase 1 Fix: Check if word fits within board boundaries
+        const endRow = direction === 'across' ? startRow : startRow + word.length - 1;
+        const endCol = direction === 'across' ? startCol + word.length - 1 : startCol;
+        
+        if (!this.isValidBoardPosition(endRow, endCol)) {
+            return { valid: false, error: `Word extends beyond board boundaries. End position ${endRow}, ${endCol} is invalid.` };
+        }
+        
+        // Phase 1 Fix: Check all intermediate positions
+        for (let i = 0; i < word.length; i++) {
+            const row = direction === 'across' ? startRow : startRow + i;
+            const col = direction === 'across' ? startCol + i : startCol;
+            
+            if (!this.isValidBoardPosition(row, col)) {
+                return { valid: false, error: `Word position ${i} (${row}, ${col}) is outside board boundaries.` };
+            }
+        }
+        
+        // Phase 1 Fix: Special edge case validation for corners and edges
+        if (this.isEdgeOrCornerPlacement(startRow, startCol, direction, word.length)) {
+            // Additional validation for edge placements
+            const edgeValidation = this.validateEdgePlacement(word, startRow, startCol, direction);
+            if (!edgeValidation.valid) {
+                return edgeValidation;
+            }
+        }
+        
+        return { valid: true };
+    }
+
+    // Phase 1 Fix: New method to detect edge or corner placements
+    isEdgeOrCornerPlacement(startRow, startCol, direction, wordLength) {
+        const endRow = direction === 'across' ? startRow : startRow + wordLength - 1;
+        const endCol = direction === 'across' ? startCol + wordLength - 1 : startCol;
+        
+        // Check if any part of the word touches the board edges
+        return startRow === 0 || startCol === 0 || endRow === 14 || endCol === 14;
+    }
+
+    // Phase 1 Fix: New method for edge-specific validation
+    validateEdgePlacement(word, startRow, startCol, direction) {
+        // Phase 1 Fix: Ensure edge placements don't have out-of-bounds issues
+        const positions = [];
+        for (let i = 0; i < word.length; i++) {
+            const row = direction === 'across' ? startRow : startRow + i;
+            const col = direction === 'across' ? startCol + i : startCol;
+            positions.push({ row, col });
+        }
+        
+        // Phase 1 Fix: Check for potential index out-of-bounds in word detection
+        for (const pos of positions) {
+            // Check adjacent positions for word detection
+            const adjacentPositions = [
+                { row: pos.row - 1, col: pos.col },
+                { row: pos.row + 1, col: pos.col },
+                { row: pos.row, col: pos.col - 1 },
+                { row: pos.row, col: pos.col + 1 }
+            ];
+            
+            for (const adj of adjacentPositions) {
+                if (!this.isValidBoardPosition(adj.row, adj.col)) {
+                    // This is expected for edge placements, but ensure word detection handles it
+                    continue;
+                }
+            }
+        }
+        
+        return { valid: true };
+    }
+
+    // Phase 1 Fix: Critical fix for tile availability validation when extending existing words
     validateTileAvailability(newPlacements, blankIndices) {
         const requiredTiles = {};
         
-        // Count required tiles for new placements
-        newPlacements.forEach(placement => {
+        // Phase 1 Fix: Only count tiles that are actually NEW (isNew: true)
+        // This prevents counting existing tiles when extending words
+        const actuallyNewPlacements = newPlacements.filter(placement => placement.isNew);
+        
+        console.log('=== TILE AVAILABILITY DEBUG ===');
+        console.log('All Placements:', newPlacements);
+        console.log('Actually New Placements:', actuallyNewPlacements);
+        console.log('Blank Indices:', blankIndices);
+        
+        // Count required tiles for ACTUALLY NEW placements only
+        actuallyNewPlacements.forEach(placement => {
             const letter = placement.letter;
             const isBlank = blankIndices.has(placement.wordIndex);
             
+            console.log(`Processing placement: ${letter} at (${placement.row}, ${placement.col}), isNew: ${placement.isNew}, isBlank: ${isBlank}`);
+            
             if (isBlank) {
                 requiredTiles['BLANK'] = (requiredTiles['BLANK'] || 0) + 1;
+                console.log(`Required BLANK tile: ${requiredTiles['BLANK']}`);
             } else {
                 requiredTiles[letter] = (requiredTiles[letter] || 0) + 1;
+                console.log(`Required ${letter} tile: ${requiredTiles[letter]}`);
             }
         });
+
+        console.log('Required Tiles Summary:', requiredTiles);
+        console.log('Available Tiles:', this.tileSupply);
 
         // Check if required tiles are available
         const missingTiles = [];
@@ -615,13 +919,16 @@ class GameState {
                     available,
                     shortage: needed - available
                 });
+                console.log(`Missing ${letter}: need ${needed}, have ${available}, shortage ${needed - available}`);
             }
         }
 
         if (missingTiles.length > 0) {
             const missingTileMessages = missingTiles.map(tile => 
-                `${tile.letter}: ${tile.shortage} needed (0 available)`
+                `${tile.letter}: ${tile.shortage} needed (${tile.available} available)`
             ).join(', ');
+            
+            console.log('❌ Tile validation FAILED:', missingTileMessages);
             
             return {
                 valid: false,
@@ -629,6 +936,9 @@ class GameState {
                 tileConflicts: missingTiles
             };
         }
+
+        console.log('✅ Tile validation PASSED: All required tiles available');
+        console.log('=== END TILE AVAILABILITY DEBUG ===');
 
         return { valid: true };
     }

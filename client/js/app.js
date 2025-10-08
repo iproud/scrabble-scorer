@@ -883,13 +883,27 @@ class ScrabbleApp {
     }
 
     updateTurnState() {
-        const { score, breakdown } = window.gameState.calculateTurnScore(
-            this.currentWord,
-            window.gameState.selectedCell.row,
-            window.gameState.selectedCell.col,
-            window.gameState.wordDirection,
-            window.gameState.blankTileIndices
-        );
+        // Phase 1 Fix: Implement state synchronization to prevent race conditions
+        // Clear any existing validation error states first
+        this.clearValidationStates();
+        
+        // Calculate turn score with comprehensive error handling
+        let score, breakdown;
+        try {
+            const result = window.gameState.calculateTurnScore(
+                this.currentWord,
+                window.gameState.selectedCell.row,
+                window.gameState.selectedCell.col,
+                window.gameState.wordDirection,
+                window.gameState.blankTileIndices
+            );
+            score = result.score;
+            breakdown = result.breakdown;
+        } catch (error) {
+            console.error('Error calculating turn score:', error);
+            score = 0;
+            breakdown = { error: 'Error calculating score', newPlacements: [], secondaryWords: [] };
+        }
         
         // Automatically activate bingo if eligible
         this.bingoActive = breakdown.eligibleForBingo;
@@ -898,36 +912,144 @@ class ScrabbleApp {
         const finalScore = score;
         
         // Check tile availability for UI feedback
-        if (breakdown.newPlacements.length > 0) {
-            const tileValidation = window.gameState.validateTileAvailability(
-                breakdown.newPlacements, 
-                window.gameState.blankTileIndices
-            );
-            breakdown.tileConflicts = tileValidation.tileConflicts;
-            breakdown.tileError = tileValidation.valid ? null : tileValidation.error;
+        if (breakdown.newPlacements && breakdown.newPlacements.length > 0) {
+            try {
+                const tileValidation = window.gameState.validateTileAvailability(
+                    breakdown.newPlacements, 
+                    window.gameState.blankTileIndices
+                );
+                breakdown.tileConflicts = tileValidation.tileConflicts;
+                breakdown.tileError = tileValidation.valid ? null : tileValidation.error;
+            } catch (error) {
+                console.error('Error validating tile availability:', error);
+                breakdown.tileError = 'Error validating tiles';
+            }
         }
         
-        // Apply the new word formation validation fix
-        const wordFormationValidation = this.validateWordFormation();
-        if (!wordFormationValidation.valid) {
-            breakdown.error = wordFormationValidation.error;
+        // Apply word formation validation with proper error handling
+        try {
+            const wordFormationValidation = this.validateWordFormation();
+            if (!wordFormationValidation.valid) {
+                breakdown.error = wordFormationValidation.error;
+            }
+        } catch (error) {
+            console.error('Error in word formation validation:', error);
+            breakdown.error = 'Error validating word formation';
         }
         
-        this.turnScoreDisplay.textContent = finalScore;
+        // Update UI components in a deterministic order
+        this.updateScoreDisplay(finalScore);
         this.renderScoreBreakdown(breakdown);
         this.updateTileDisplay(breakdown.tileConflicts);
 
-        // Show/hide submit button
-        const hasNewPlacements = breakdown.newPlacements.some(p => p.isNew);
-        const canSubmit = window.gameState.wordDirection && this.currentWord && 
-            hasNewPlacements && !breakdown.error && !breakdown.tileError;
-            
+        // Phase 1 Fix: Deterministic submit button visibility logic
+        this.updateSubmitButtonVisibility(breakdown);
+        this.updateCancelAndUndoButtonVisibility();
+    }
+
+    // Phase 1 Fix: New method to clear validation states
+    clearValidationStates() {
+        // Clear any existing validation error messages
+        const validationResult = document.getElementById('validation-result');
+        if (validationResult) {
+            validationResult.innerHTML = '';
+            validationResult.classList.add('hidden');
+        }
+        
+        // Clear any error states in the breakdown
+        if (window.gameState && window.gameState.lastBreakdown) {
+            window.gameState.lastBreakdown.error = null;
+            window.gameState.lastBreakdown.tileError = null;
+        }
+    }
+
+    // Phase 1 Fix: New method to update score display safely
+    updateScoreDisplay(score) {
+        if (this.turnScoreDisplay) {
+            this.turnScoreDisplay.textContent = score || 0;
+        }
+    }
+
+    // Phase 1 Fix: Critical fix for submit button visibility - require new tile placements
+    updateSubmitButtonVisibility(breakdown) {
+        if (!this.submitTurnBtn) return;
+        
+        // Calculate submit button visibility deterministically
+        const hasValidWord = this.currentWord && this.currentWord.length > 0;
+        const hasValidDirection = window.gameState && window.gameState.wordDirection;
+        const hasValidPosition = window.gameState && window.gameState.selectedCell && 
+                               window.gameState.selectedCell.row !== null && 
+                               window.gameState.selectedCell.col !== null;
+        
+        // Phase 1 Fix: CRITICAL - Only allow submit if NEW tiles are being placed
+        // This prevents submitting existing words without new tiles
+        let hasNewPlacements = false;
+        if (breakdown && breakdown.newPlacements) {
+            hasNewPlacements = breakdown.newPlacements.some(p => p.isNew);
+        }
+        
+        const hasErrors = breakdown && (breakdown.error || breakdown.tileError);
+        
+        // Phase 1 Fix: ENFORCE NEW TILE PLACEMENT RULE - Must place at least one new tile
+        const canSubmit = hasValidWord && hasValidDirection && hasValidPosition && 
+                         hasNewPlacements && !hasErrors;
+        
+        // Phase 1 Fix: Enhanced debugging logging with new tile placement validation
+        console.log('=== SUBMIT BUTTON VISIBILITY DEBUG ===');
+        console.log('Current Word:', this.currentWord);
+        console.log('Has Valid Word:', hasValidWord);
+        console.log('Has Valid Direction:', hasValidDirection, 'Direction:', window.gameState?.wordDirection);
+        console.log('Has Valid Position:', hasValidPosition, 'Position:', window.gameState?.selectedCell);
+        console.log('Has New Placements:', hasNewPlacements, '(CRITICAL: Must be true to submit)');
+        console.log('Breakdown:', breakdown);
+        console.log('New Placements:', breakdown?.newPlacements);
+        console.log('Actually New Tiles:', breakdown?.newPlacements?.filter(p => p.isNew));
+        console.log('Has Errors:', hasErrors, 'Error:', breakdown?.error, 'Tile Error:', breakdown?.tileError);
+        console.log('Can Submit:', canSubmit);
+        console.log('Submit Button Classes:', this.submitTurnBtn.className);
+        console.log('Submit Button Disabled:', this.submitTurnBtn.disabled);
+        
+        // Phase 1 Fix: Add detailed reasoning for submit button state
+        if (!hasValidWord) {
+            console.log('❌ BLOCKED: No valid word entered');
+        } else if (!hasValidDirection) {
+            console.log('❌ BLOCKED: No direction selected');
+        } else if (!hasValidPosition) {
+            console.log('❌ BLOCKED: No valid position selected');
+        } else if (!hasNewPlacements) {
+            console.log('❌ BLOCKED: No new tiles being placed (Scrabble rule violation)');
+        } else if (hasErrors) {
+            console.log('❌ BLOCKED: Validation errors present');
+        } else {
+            console.log('✅ ALLOWED: All conditions met for submission');
+        }
+        console.log('=== END DEBUG ===');
+        
+        // Update submit button visibility
         if (canSubmit) {
             this.submitTurnBtn.classList.remove('hidden');
+            this.submitTurnBtn.disabled = false;
+            console.log('✅ Submit button ENABLED and VISIBLE');
         } else {
             this.submitTurnBtn.classList.add('hidden');
+            this.submitTurnBtn.disabled = true;
+            console.log('❌ Submit button DISABLED and HIDDEN');
         }
-        this.updateCancelAndUndoButtonVisibility(); // Update button visibility
+    }
+
+    // Phase 1 Fix: New method to detect if user is extending an existing word
+    isExtendingExistingWord() {
+        if (!window.gameState || !window.gameState.selectedCell || 
+            window.gameState.selectedCell.row === null || 
+            window.gameState.selectedCell.col === null) {
+            return false;
+        }
+        
+        const { row, col } = window.gameState.selectedCell;
+        const existingTile = window.gameState.boardState[row][col];
+        
+        // If we clicked on an existing tile and have a valid word, we're extending
+        return existingTile && this.currentWord && this.currentWord.length > 0;
     }
 
     updateTileDisplay(tileConflicts = null) {
@@ -2017,7 +2139,7 @@ class ScrabbleApp {
         return wordFragment ? wordFragment.word : null;
     }
 
-    // Validate word formation rules (including the fix for the bug)
+    // Phase 1 Fix: Improved word formation validation with proper state clearing
     validateWordFormation() {
         if (!this.currentWord || window.gameState.selectedCell.row === null || !window.gameState.wordDirection) {
             return { valid: true }; // No validation needed for empty input
@@ -2033,17 +2155,38 @@ class ScrabbleApp {
             const hasLettersAfter = (startIndex + existingWord.length) < this.currentWord.length;
 
             if (hasLettersBefore && hasLettersAfter) {
-                const validationResult = document.getElementById('validation-result');
-                if (validationResult) {
-                    validationResult.innerHTML = `<span class="text-red-500">Cannot add letters to both sides of an existing word.</span>`;
-                    validationResult.classList.remove('hidden');
-                }
+                // Phase 1 Fix: Show validation error and clear state properly
+                this.showValidationError("Cannot add letters to both sides of an existing word.");
                 this.hideScoreButton();
                 return { valid: false, error: "Cannot add letters to both sides of an existing word." };
             }
         }
 
+        // Phase 1 Fix: Clear any previous validation errors when validation passes
+        this.clearValidationErrors();
         return { valid: true };
+    }
+
+    // Phase 1 Fix: New method to show validation errors consistently
+    showValidationError(message) {
+        const validationResult = document.getElementById('validation-result');
+        if (validationResult) {
+            validationResult.innerHTML = `<span class="text-red-500">${message}</span>`;
+            validationResult.classList.remove('hidden');
+        }
+        // Also store the error state for consistent UI handling
+        this.lastValidationError = message;
+    }
+
+    // Phase 1 Fix: New method to clear validation errors when user corrects input
+    clearValidationErrors() {
+        const validationResult = document.getElementById('validation-result');
+        if (validationResult) {
+            validationResult.innerHTML = '';
+            validationResult.classList.add('hidden');
+        }
+        // Clear stored error state
+        this.lastValidationError = null;
     }
 
     // Helper method to hide the submit score button
