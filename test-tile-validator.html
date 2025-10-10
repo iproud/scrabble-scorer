@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tile Validator Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .board-cell { width: 30px; height: 30px; border: 1px solid #ccc; display: inline-block; text-align: center; line-height: 30px; }
+    </style>
+</head>
+<body>
+    <h1>Tile Validator Test</h1>
+    
+    <div class="test-section">
+        <h2>Test HELP → HELPER Extension</h2>
+        <button onclick="testWordExtension()">Test Word Extension</button>
+        <div id="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Board State</h2>
+        <div id="board-display"></div>
+    </div>
+
+    <script src="client/js/premium-tracker.js"></script>
+    <script src="client/js/tile-validator.js"></script>
+    <script>
+        // Mock board state with HELP already placed
+        const mockBoardState = Array(15).fill(null).map(() => Array(15).fill(null));
+        
+        // Place HELP at positions (7,4)-(7,7)
+        mockBoardState[7][4] = { letter: 'H', isBlank: false };
+        mockBoardState[7][5] = { letter: 'E', isBlank: false };
+        mockBoardState[7][6] = { letter: 'L', isBlank: false };
+        mockBoardState[7][7] = { letter: 'P', isBlank: false };
+        
+        // Mock board layout
+        const mockBoardLayout = [
+            ['TWS', '', '', 'DLS', '', '', '', 'TWS', '', '', '', 'DLS', '', '', 'TWS'],
+            ['', 'DWS', '', '', '', 'TLS', '', '', '', 'TLS', '', '', '', 'DWS', ''],
+            ['', '', 'DWS', '', '', '', 'DLS', '', 'DLS', '', '', '', 'DWS', '', ''],
+            ['DLS', '', '', 'DWS', '', '', '', 'DLS', '', '', '', 'DWS', '', '', 'DLS'],
+            ['', '', '', '', 'DWS', '', '', '', '', '', '', 'DWS', '', '', '', ''],
+            ['', 'TLS', '', '', '', 'TLS', '', '', '', 'TLS', '', '', '', 'TLS', ''],
+            ['', '', 'DLS', '', '', '', 'DLS', '', 'DLS', '', '', '', 'DLS', '', ''],
+            ['TWS', '', '', 'DLS', '', '', '', 'DWS', '', '', '', 'DLS', '', '', 'TWS'],
+            ['', '', 'DLS', '', '', '', 'DLS', '', 'DLS', '', '', '', 'DLS', '', ''],
+            ['', 'TLS', '', '', '', 'TLS', '', '', '', 'TLS', '', '', '', 'TLS', ''],
+            ['', '', '', '', 'DWS', '', '', '', '', '', '', 'DWS', '', '', '', ''],
+            ['DLS', '', '', 'DWS', '', '', '', 'DLS', '', '', '', 'DWS', '', '', 'DLS'],
+            ['', '', 'DWS', '', '', '', 'TLS', '', '', '', 'TLS', '', '', '', 'DWS', ''],
+            ['', 'DWS', '', '', '', 'TLS', '', '', '', 'TLS', '', '', '', 'DWS', ''],
+            ['TWS', '', '', 'DLS', '', '', '', 'TWS', '', '', '', 'DLS', '', '', 'TWS']
+        ];
+
+        function displayBoard() {
+            const boardDisplay = document.getElementById('board-display');
+            boardDisplay.innerHTML = '';
+            
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'board-cell';
+                    
+                    const tile = mockBoardState[row][col];
+                    if (tile) {
+                        cell.textContent = tile.letter;
+                        cell.style.backgroundColor = '#e8f5e8';
+                        cell.style.fontWeight = 'bold';
+                    } else if (row === 7 && col === 7) {
+                        cell.textContent = '★';
+                        cell.style.backgroundColor = '#fff3cd';
+                        cell.style.color = '#856404';
+                    } else if (mockBoardLayout[row][col]) {
+                        cell.textContent = mockBoardLayout[row][col];
+                        cell.style.fontSize = '10px';
+                        cell.style.color = '#666';
+                    }
+                    
+                    boardDisplay.appendChild(cell);
+                }
+                boardDisplay.appendChild(document.createElement('br'));
+            }
+        }
+
+        function testWordExtension() {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '<div class="result">Testing HELP → HELPER extension...</div>';
+            
+            try {
+                // Initialize components
+                const premiumSquareTracker = new PremiumSquareTracker();
+                const tileValidator = new TileValidator(premiumSquareTracker);
+                
+                // Test extending HELP to HELPER
+                const word = 'HELPER';
+                const startRow = 7;
+                const startCol = 4;
+                const direction = 'across';
+                const blankIndices = new Set();
+                
+                console.log('=== TILE VALIDATOR TEST ===');
+                console.log('Word:', word);
+                console.log('Start Position:', {row: startRow, col: startCol});
+                console.log('Direction:', direction);
+                
+                // Validate the word placement
+                const validation = tileValidator.validateWordPlacement(
+                    word,
+                    startRow,
+                    startCol,
+                    direction,
+                    mockBoardState,
+                    mockBoardLayout,
+                    blankIndices
+                );
+                
+                console.log('Validation Result:', validation);
+                
+                if (validation.valid) {
+                    resultDiv.innerHTML += '<div class="result success">✅ VALIDATION PASSED</div>';
+                    resultDiv.innerHTML += `<div class="result success">New Placements: ${validation.placements.filter(p => p.isNew).length}</div>`;
+                    resultDiv.innerHTML += `<div class="result success">Existing Placements: ${validation.placements.filter(p => !p.isNew).length}</div>`;
+                    
+                    // Show placement details
+                    validation.placements.forEach((placement, index) => {
+                        const status = placement.isNew ? 'NEW' : 'EXISTING';
+                        resultDiv.innerHTML += `<div class="result">Position (${placement.row}, ${placement.col}): ${placement.letter} (${status})</div>`;
+                    });
+                } else {
+                    resultDiv.innerHTML += '<div class="result error">❌ VALIDATION FAILED</div>';
+                    validation.errors.forEach(error => {
+                        resultDiv.innerHTML += `<div class="result error">Error: ${error}</div>`;
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                resultDiv.innerHTML += `<div class="result error">❌ TEST ERROR: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize display
+        displayBoard();
+    </script>
+</body>
+</html>

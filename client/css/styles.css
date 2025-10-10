@@ -2,6 +2,30 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
+/* Scrabble Board and Tile Style Guide - CSS Custom Properties */
+:root {
+    /* Board Colors */
+    --base-board: #4C7F9C;
+    --board-borders: #C7CBD8;
+    --bonus-text-color: #EBE3D1;
+    
+    /* Bonus Square Colors */
+    --tws-color: #9BA101;
+    --tls-color: #CB0B44;
+    --dws-color: #E3AD05;
+    --dls-color: #303352;
+    
+    /* Tile Colors */
+    --default-tile: #F0ECF0;
+    --default-tile-font: #1A1918;
+    --blank-tile-font: #BBBBBB;
+    --new-tile: #99F586;
+    --new-tile-font: #134109;
+    --conflict-tile: #F9B2B2;
+    --conflict-tile-font: #6E1515;
+    --tile-border: #5f5f5f;
+}
+
 .player-input-wrapper {
     position: relative;
 }
@@ -56,14 +80,15 @@ body {
     aspect-ratio: 1 / 1;
     width: 100%;
     gap: 2px;
-    background-color: #006a6b;
-    border: 4px solid #c8a37a;
+    background-color: var(--board-borders);
+    border: 4px solid var(--tile-border);
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    position: relative; /* Required for absolute positioning of preview tiles */
 }
 
 .board-cell {
-    background-color: #d1e5d1;
-    color: #555;
+    background-color: var(--base-board);
+    color: var(--bonus-text-color);
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -85,10 +110,10 @@ body {
 }
 
 /* General Bonus Colors */
-.TWS { background-color: #e54c4c; color: white; } /* red-500 */
-.DWS { background-color: #f0a8a8; color: white; } /* red-300 */
-.TLS { background-color: #2b61a9; color: white; } /* blue-700 */
-.DLS { background-color: #a7e0f1; color: white; } /* blue-200 */
+.TWS { background-color: var(--tws-color); color: var(--bonus-text-color); }
+.DWS { background-color: var(--dws-color); color: var(--bonus-text-color); }
+.TLS { background-color: var(--tls-color); color: var(--bonus-text-color); }
+.DLS { background-color: var(--dls-color); color: var(--bonus-text-color); }
 
 .center-star {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23b4946c"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>');
@@ -98,13 +123,22 @@ body {
 }
 
 .board-cell.tile-placed {
-    background-color: #f6e5c5;
-    border: 1px solid #c8a37a;
-    color: #333;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border-radius: 0.25rem;
+    color: var(--default-tile-font);
+    background-color: var(--default-tile);
+    border: 1px solid var(--tile-border);
+    position: relative;
+    text-transform: uppercase;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
     font-family: 'Arial Black', Gadget, sans-serif;
     cursor: pointer;
     font-size: clamp(10px, 2.5vw, 18px);
     line-height: 1;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .tile-score {
@@ -128,14 +162,14 @@ body {
     justify-content: center;
     font-weight: bold;
     border-radius: 0.25rem; /* Keep the slight rounding */
-    color: black;
-    background-color: #f6e5c5; /* Use board tile color */
-    border: 1px solid #c8a37a; /* Match board tile border */
+    color: var(--default-tile-font);
+    background-color: var(--default-tile);
+    border: 1px solid var(--tile-border);
     position: relative;
     text-transform: uppercase;
     box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
     font-family: 'Arial Black', Gadget, sans-serif;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Size modifiers */
@@ -163,33 +197,33 @@ body {
 
 /* State modifiers - preserve existing functionality */
 .tile-existing {
-    background-color: #bbf7d0; /* Light green for existing tiles */
-    border-color: #22c55e;
-    color: #15803d;
+    background-color: var(--default-tile);
+    border-color: var(--tile-border);
+    color: var(--default-tile-font);
 }
 
 .tile-new {
-    background-color: #f6e5c5; /* Base Scrabble tile color */
-    border: 1px solid #c8a37a;
-    color: #333;
+    background-color: var(--new-tile);
+    border-color: var(--tile-border);
+    color: var(--new-tile-font);
     cursor: pointer;
 }
 
 .tile-conflict {
-    background-color: #fecaca; /* Light red for conflicts */
-    border-color: #ef4444;
-    color: #b91c1c;
+    background-color: var(--conflict-tile);
+    border-color: var(--tile-border);
+    color: var(--conflict-tile-font);
     text-decoration: line-through;
 }
 
 .tile-blank {
-    background-color: #4b5563; /* Gray for blank tiles */
-    color: white;
-    border-color: #374151;
+    background-color: var(--default-tile);
+    border-color: var(--tile-border);
+    color: var(--blank-tile-font);
 }
 
 .tile-blank .tile-score {
-    color: white; /* Make score visible on blank tiles */
+    color: var(--blank-tile-font); /* Make score visible on blank tiles */
 }
 
 /* Tile Component Classes */
@@ -300,26 +334,26 @@ body {
     font-size: 20px;
     border-radius: 4px;
     position: relative;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .display-tile-new {
-    background-color: #f6e5c5; /* Scrabble tile color */
-    border: 1px solid #c8a37a;
-    color: #333;
+    background-color: var(--new-tile);
+    border: 1px solid var(--tile-border);
+    color: var(--new-tile-font);
     cursor: pointer;
 }
 
 .display-tile-existing {
-    background-color: #bbf7d0; /* A light green to show it's locked */
-    border: 1px solid #22c55e;
-    color: #15803d;
+    background-color: var(--default-tile);
+    border: 1px solid var(--tile-border);
+    color: var(--default-tile-font);
 }
 
 .display-tile-conflict {
-    background-color: #fecaca; /* red */
-    border: 1px solid #ef4444;
-    color: #b91c1c;
+    background-color: var(--conflict-tile);
+    border: 1px solid var(--tile-border);
+    color: var(--conflict-tile-font);
     text-decoration: line-through;
 }
 
@@ -332,21 +366,128 @@ body {
 }
 
 .display-tile.blank-active {
-    background-color: #4b5563; /* gray-600 */
-    color: white;
-    border-color: #374151; /* gray-700 */
+    background-color: var(--default-tile);
+    color: var(--blank-tile-font);
+    border-color: var(--tile-border);
     border-style: solid;
     border-width: 1px;
 }
 
 .display-tile.blank-active .display-tile-score {
-    color: white;
+    color: var(--blank-tile-font);
 }
 
 /* Tile inventory modal blank tile styling */
 .tile-inventory-blank {
-    font-size: 0.75rem !important;
+    font-size: 0.65rem !important;
     line-height: 1 !important;
+}
+
+/* Real-Time Tile Placement Styles */
+.real-time-tile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Arial Black', Gadget, sans-serif;
+    font-weight: bold;
+    font-size: clamp(10px, 2.5vw, 18px);
+    color: var(--default-tile-font);
+    background-color: var(--default-tile);
+    border: 1px solid var(--tile-border);
+    border-radius: 0.25rem;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    position: relative;
+    text-transform: uppercase;
+    line-height: 1;
+    z-index: 30;
+    pointer-events: none;
+    animation: fadeIn 0.2s ease-out;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.real-time-tile.tile-preview {
+    background-color: var(--new-tile);
+    border-color: var(--tile-border);
+    color: var(--new-tile-font);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        opacity: 0.8; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 1; 
+        transform: scale(1.02);
+    }
+}
+
+.real-time-tile.tile-existing {
+    background-color: var(--default-tile);
+    border-color: var(--tile-border);
+    color: var(--default-tile-font);
+    animation: none;
+}
+
+.real-time-tile.tile-conflict {
+    background-color: var(--conflict-tile);
+    border-color: var(--tile-border);
+    color: var(--conflict-tile-font);
+    text-decoration: line-through;
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+.real-time-tile.tile-blank {
+    background-color: var(--default-tile);
+    border-color: var(--tile-border);
+    color: var(--blank-tile-font);
+    animation: none;
+}
+
+.real-time-tile .tile-letter {
+    font-weight: bold;
+    color: inherit;
+    text-transform: uppercase;
+}
+
+.real-time-tile .tile-score {
+    position: absolute;
+    bottom: 1px;
+    right: 2px;
+    font-size: clamp(6px, 1.5vw, 10px);
+    font-weight: normal;
+    color: var(--default-tile-font);
+    font-family: 'Inter', sans-serif;
+}
+
+/* Mobile responsive adjustments for real-time tiles */
+@media (max-width: 640px) {
+    .real-time-tile {
+        font-size: clamp(10px, 2.5vw, 18px);
+    }
+    
+    .real-time-tile .tile-score {
+        font-size: clamp(6px, 1.5vw, 10px);
+        bottom: 1px;
+        right: 2px;
+    }
 }
 
 /* Loading states */
@@ -829,32 +970,231 @@ body.mobile-game-sheet-open {
 #leftover-tiles-grid {
     background-color: #f3f4f6;
     border-radius: 0.5rem;
-    padding: 0.75rem;
+    padding: 1rem 0.75rem 0.75rem 0.75rem;
     display: grid;
-    gap: 0.5rem;
+    gap: 0.25rem;
     grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+}
+
+/* Apply consistent tile styling to leftover tiles grid */
+#leftover-tiles-grid > div:nth-child(3) {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border-radius: 0.25rem;
+    color: var(--default-tile-font);
+    background-color: var(--default-tile);
+    border: 1px solid var(--tile-border);
+    position: relative;
+    text-transform: uppercase;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    font-family: 'Arial Black', Gadget, sans-serif;
+    font-size: 1rem; /* 16px */
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Tile Inventory Modal Styles */
+#tile-inventory-modal #tile-inventory-grid {
+    background-color: #f3f4f6;
+    border-radius: 0.5rem;
+    padding: 1rem 0.75rem 0.75rem 0.75rem;
+    display: grid;
+    gap: 0.25rem;
+    grid-template-columns: repeat(5, 1fr);
+}
+
+/* Apply consistent tile styling to tile inventory modal */
+#tile-inventory-modal #tile-inventory-grid > div:nth-child(3) {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border-radius: 0.25rem;
+    color: var(--default-tile-font);
+    background-color: var(--default-tile);
+    border: 1px solid var(--tile-border);
+    position: relative;
+    text-transform: uppercase;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    font-family: 'Arial Black', Gadget, sans-serif;
+    font-size: 1rem; /* 16px */
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Tile Inventory Modal Tile Styles */
+#tile-inventory-modal .tile-inventory-blank {
+    font-size: 0.65rem !important;
+    line-height: 1 !important;
+}
+
+/* Apply blank tile styling to both grids */
+#leftover-tiles-grid > div:nth-child(3).tile-inventory-blank,
+#tile-inventory-modal #tile-inventory-grid > div:nth-child(3).tile-inventory-blank {
+    color: var(--blank-tile-font);
+}
+
+/* Apply score positioning to both grids */
+#leftover-tiles-grid > div:nth-child(3) .tile-score,
+#tile-inventory-modal #tile-inventory-grid > div:nth-child(3) .tile-score {
+    position: absolute;
+    bottom: 1px;
+    right: 2px;
+    font-size: 0.6rem; /* 9.6px */
+    font-weight: normal;
+    color: var(--default-tile-font);
+    font-family: 'Inter', sans-serif;
+}
+
+#leftover-tiles-grid > div:nth-child(3).tile-inventory-blank .tile-score,
+#tile-inventory-modal #tile-inventory-grid > div:nth-child(3).tile-inventory-blank .tile-score {
+    color: var(--blank-tile-font);
 }
 
 /* Legacy tile styles for finish game modal - use different class name to avoid conflicts */
 .finish-game-tile {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Arial Black', Gadget, sans-serif;
     position: relative;
-    background-color: #f7e8d3;
-    border: 1px solid #d3c3a1;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1), inset 0px -3px 2px rgba(0,0,0,0.05);
-    color: #4a4a4a;
+    background-color: var(--default-tile);
+    border: 1px solid var(--tile-border);
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    color: var(--default-tile-font);
     aspect-ratio: 1 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.375rem;
+    border-radius: 0.25rem;
     cursor: pointer;
     transition: transform 0.1s ease-in-out;
-    max-width: 56px;
+    width: 36px;
+    height: 36px;
+    font-weight: bold;
+    font-size: 1rem; /* 16px */
+    text-transform: uppercase;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
-.finish-game-tile .letter { font-weight: 700; font-size: 1.5rem; }
-.finish-game-tile .points { font-size: 0.75rem; font-weight: 600; position: absolute; bottom: 4px; right: 5px; }
+.finish-game-tile .letter { font-weight: 700; font-size: 1rem; }
+.finish-game-tile .points { font-size: 0.6rem; font-weight: 600; position: absolute; bottom: 1px; right: 2px; font-family: 'Inter', sans-serif; color: var(--default-tile-font); }
 .finish-game-tile .count { font-size: 0.875rem; font-weight: 500; color: #8b5cf6; position: absolute; top: 2px; right: 5px; }
+
+/* Override finish-game-tile for tile inventory modal (more specific selector) */
+#tile-inventory-modal .finish-game-tile.finish-game-tile {
+    background-color: var(--default-tile) !important;
+    border: 1px solid var(--tile-border) !important;
+    color: var(--default-tile-font) !important;
+    border-radius: 0.25rem !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
+    font-family: 'Arial Black', Gadget, sans-serif !important;
+    text-transform: uppercase !important;
+}
+
+/* Override finish-game-tile for leftover tiles grid */
+#leftover-tiles-grid .finish-game-tile.finish-game-tile {
+    background-color: var(--default-tile) !important;
+    border: 1px solid var(--tile-border) !important;
+    color: var(--default-tile-font) !important;
+    border-radius: 0.25rem !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
+    font-family: 'Arial Black', Gadget, sans-serif !important;
+    text-transform: uppercase !important;
+}
+
+/* Fix blank tile text overflow in finish-game-tile for leftover tiles grid */
+#leftover-tiles-grid .finish-game-tile.tile-blank {
+    font-size: 0.5rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
+}
+
+#leftover-tiles-grid .finish-game-tile.tile-blank .letter {
+    font-size: 0.5rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
+}
+
+/* More specific override for blank tiles in leftover grid */
+#leftover-tiles-grid button.finish-game-tile.tile-blank {
+    font-size: 0.5rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
+}
+
+#leftover-tiles-grid button.finish-game-tile.tile-blank .letter {
+    font-size: 0.5rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
+}
+
+#leftover-tiles-grid button.finish-game-tile.tile-blank .tile-letter {
+    font-size: 0.5rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
+}
+
+/* Even more specific override for blank tiles in leftover grid */
+#leftover-tiles-grid button.finish-game-tile.tile-blank > span.tile-letter {
+    font-size: 0.5rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
+}
+
+/* Fix blank tile text overflow in both modals */
+#tile-inventory-modal .finish-game-tile[data-letter="BLANK"],
+#leftover-tiles-grid .finish-game-tile[data-letter="BLANK"] {
+    font-size: 0.65rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    color: var(--blank-tile-font) !important;
+}
+
+/* Fix blank tile score color in both modals */
+#tile-inventory-modal .finish-game-tile[data-letter="BLANK"] .points,
+#leftover-tiles-grid .finish-game-tile[data-letter="BLANK"] .points {
+    color: var(--blank-tile-font) !important;
+}
+
+/* Fix blank tile text overflow in tile component system */
+.tile.tile-sm.tile-blank .tile-letter {
+    font-size: 0.5rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
+}
+
+/* Override blank tile font size and line height */
+.tile.tile-sm.tile-blank {
+    font-size: 0.5rem !important;
+    line-height: 1 !important;
+}
+
+/* Apply blank tile fixes to both modal contexts */
+#tile-inventory-modal .tile.tile-sm.tile-blank .tile-letter,
+#leftover-tiles-grid .tile.tile-sm.tile-blank .tile-letter {
+    font-size: 0.5rem !important;
+    font-weight: normal !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
+}
+
+#tile-inventory-modal .tile.tile-sm.tile-blank,
+#leftover-tiles-grid .tile.tile-sm.tile-blank {
+    font-size: 0.5rem !important;
+    line-height: 1 !important;
+}
 
 .finish-game-tile-sm { width: 36px; height: 36px; flex-shrink: 0; }
 .finish-game-tile-sm .letter { font-size: 1rem; }

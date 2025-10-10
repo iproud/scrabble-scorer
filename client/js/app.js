@@ -16,6 +16,12 @@ class ScrabbleApp {
         this.dictionaryEnabled = false;
         this.dictionaryToggleSyncing = false;
         
+        // Phase 6 Fix: Initialize Real-Time Tile Placement system
+        this.wordPreview = null; // Removed - using direct tile placement
+        this.wordPreviewEnabled = false;
+        this.realTimeTilePlacement = null; // New Real-Time Tile Placement system
+        this.realTimeTilePlacementEnabled = false;
+        
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.init());
@@ -32,6 +38,14 @@ class ScrabbleApp {
         this.setupPlayerAutocomplete();
         this.attachNameInputHandlers();
         this.initializeDictionaryPreference();
+        
+        // Phase 6 Fix: Initialize Real-Time Tile Placement system
+        console.log('Scrabble App: Initializing Real-Time Tile Placement system');
+        this.realTimeTilePlacement = new RealTimeTilePlacement(this.boardContainer, window.gameState);
+        this.realTimeTilePlacementEnabled = this.realTimeTilePlacement.initialize();
+        if (!this.realTimeTilePlacementEnabled) {
+            console.error('Scrabble App: Failed to initialize Real-Time Tile Placement system');
+        }
         
         // Register service worker
         await this.registerServiceWorker();
@@ -746,6 +760,10 @@ class ScrabbleApp {
         this.currentWord = '';
         window.gameState.blankTileIndices.clear();
         
+        // Phase 6 Fix: Stop any existing Real-Time Tile Placement when selecting new cell
+        console.log('Scrabble App: Clearing previous tile placement state');
+        // Word Preview system removed - using direct tile placement
+        
         // Update UI flow - Show Step 2: Choose Direction
         this.startPrompt.classList.add('hidden');
         this.directionContainer.classList.remove('hidden'); // Show direction buttons
@@ -789,6 +807,16 @@ class ScrabbleApp {
             
             // Clear blank tile indices
             window.gameState.blankTileIndices.clear();
+            
+            // Phase 6 Fix: Start Real-Time Tile Placement when direction is selected
+            console.log('Scrabble App: Starting Real-Time Tile Placement with direction:', newDirection);
+            if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
+                this.realTimeTilePlacement.startPlacement(
+                    window.gameState.selectedCell.row,
+                    window.gameState.selectedCell.col,
+                    newDirection
+                );
+            }
             
             // Check if start position has an existing tile and pre-fill it
             const existingTile = window.gameState.boardState[window.gameState.selectedCell.row][window.gameState.selectedCell.col];
@@ -858,6 +886,12 @@ class ScrabbleApp {
         const rawInput = this.wordInput.value.toUpperCase().replace(/[^A-Z]/g, '');
         this.wordInput.value = rawInput;
         this.currentWord = rawInput;
+        
+        // Phase 6 Fix: Update Real-Time Tile Placement in real-time as user types
+        console.log('Scrabble App: Updating Real-Time Tile Placement with word:', this.currentWord);
+        if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
+            this.realTimeTilePlacement.handleWordInput(this.currentWord);
+        }
         
         // --- Start of Debugging Block ---
         const existingWord = this.getExistingWordAtPosition();
@@ -1828,6 +1862,12 @@ class ScrabbleApp {
         
         window.gameState.blankTileIndices.clear();
         
+        // Phase 6 Fix: Stop Real-Time Tile Placement when turn is reset
+        console.log('Scrabble App: Clearing tile placement state on turn reset');
+        if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
+            this.realTimeTilePlacement.stopPlacement();
+        }
+        
         // Reset UI flow
         this.wordEntryContainer.classList.add('hidden');
         this.directionContainer.classList.add('hidden');
@@ -2194,6 +2234,12 @@ class ScrabbleApp {
         if (this.submitTurnBtn) {
             this.submitTurnBtn.classList.add('hidden');
         }
+    }
+
+    // Phase 6 Fix: Initialize Real-Time Tile Placement system
+    initializeWordPreview() {
+        console.log('Scrabble App: Word Preview system removed - using direct tile placement');
+        return true; // Always return true to maintain compatibility
     }
 }
 

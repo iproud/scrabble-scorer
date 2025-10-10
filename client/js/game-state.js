@@ -41,10 +41,23 @@ class GameState {
             'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 4, 'T': 6,
             'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, 'BLANK': 2 // Using 'BLANK' for blank tiles
         };
+        
+        // Phase 4 Fix: Initialize premium square tracker with state persistence
+        this.premiumSquareTracker = new PremiumSquareTracker();
+        
+        // Try to load saved state from localStorage first
+        const stateLoaded = this.premiumSquareTracker.loadState();
+        if (!stateLoaded) {
+            console.log('GameState: No saved premium square state found, using fresh tracker');
+        }
+        
+        // Phase 3 Fix: Initialize tile validator
+        this.tileValidator = new TileValidator(this.premiumSquareTracker);
     }
 
     // Initialize new game
     initializeGame(gameData) {
+        console.log('GameState: Initializing game with ID', gameData.id);
         this.gameId = gameData.id;
         this.players = gameData.players || [];
         this.currentPlayerIndex = 0;
@@ -57,6 +70,9 @@ class GameState {
         } else {
             this.boardState = Array(15).fill(null).map(() => Array(15).fill(null));
         }
+        
+        // Phase 4 Fix: Restore premium square tracker state after loading game data
+        this.restorePremiumSquareTrackerState();
         
         // Replay turns to rebuild board state
         this.replayTurns();
@@ -112,6 +128,76 @@ class GameState {
                     }
                 }
             }
+        }
+    }
+
+    // Phase 4 Fix: Restore premium square tracker state with fallback mechanisms
+    restorePremiumSquareTrackerState() {
+        console.log('GameState: Restoring premium square tracker state');
+        
+        try {
+            // Method 1: Try to load from localStorage (most reliable for same session)
+            if (this.premiumSquareTracker.loadState()) {
+                console.log('GameState: Premium square tracker state restored from localStorage');
+                
+                // Validate state consistency with board state
+                const validation = this.premiumSquareTracker.validateStateConsistency(this.boardState, this.boardLayout);
+                if (validation.valid) {
+                    console.log('GameState: Premium square tracker state is consistent with board state');
+                    return;
+                } else {
+                    console.warn('GameState: Premium square tracker state inconsistency detected:', validation.issues);
+                    console.log('GameState: Attempting to reconstruct from turn history');
+                }
+            }
+            
+            // Method 2: Try to reconstruct from turn history
+            if (this.turnHistory && this.turnHistory.length > 0) {
+                console.log('GameState: Attempting to reconstruct premium square tracker state from turn history');
+                if (this.premiumSquareTracker.reconstructFromTurnHistory(this.turnHistory)) {
+                    console.log('GameState: Premium square tracker state reconstructed from turn history');
+                    
+                    // Save the reconstructed state to localStorage for future use
+                    this.premiumSquareTracker.saveState();
+                    
+                    // Validate reconstructed state
+                    const validation = this.premiumSquareTracker.validateStateConsistency(this.boardState, this.boardLayout);
+                    if (validation.valid) {
+                        console.log('GameState: Reconstructed premium square tracker state is consistent');
+                        return;
+                    } else {
+                        console.warn('GameState: Reconstructed premium square tracker state inconsistency detected:', validation.issues);
+                    }
+                }
+            }
+            
+            // Method 3: Fallback - reconstruct from current board state (least reliable)
+            console.log('GameState: Attempting to reconstruct premium square tracker state from board state (fallback)');
+            if (this.premiumSquareTracker.reconstructFromBoardState(this.boardState, this.boardLayout)) {
+                console.log('GameState: Premium square tracker state reconstructed from board state');
+                
+                // Save the reconstructed state to localStorage for future use
+                this.premiumSquareTracker.saveState();
+                
+                // Validate reconstructed state
+                const validation = this.premiumSquareTracker.validateStateConsistency(this.boardState, this.boardLayout);
+                if (validation.valid) {
+                    console.log('GameState: Reconstructed premium square tracker state is consistent');
+                    return;
+                } else {
+                    console.warn('GameState: Reconstructed premium square tracker state inconsistency detected:', validation.issues);
+                }
+            }
+            
+            // Method 4: Last resort - use empty state if all else fails
+            console.warn('GameState: All premium square tracker restoration methods failed, using empty state');
+            this.premiumSquareTracker.clear();
+            this.premiumSquareTracker.clearSavedState();
+            
+        } catch (error) {
+            console.error('GameState: Error restoring premium square tracker state:', error);
+            console.error('GameState: Using empty premium square tracker state as fallback');
+            this.premiumSquareTracker.clear();
         }
     }
 
@@ -229,17 +315,17 @@ class GameState {
         return { score: totalScore, breakdown };
     }
 
-    // Phase 1 Fix: Improved identifyNewPlacements with robust blank tile mapping and tile availability fix
+    // Phase 3 Fix: Corrected identifyNewPlacements for extending existing words
     identifyNewPlacements(word, startRow, startCol, direction, blankIndices) {
         const placements = [];
         
-        // Phase 1 Fix: Validate input parameters
+        // Validate input parameters
         if (!word || typeof word !== 'string' || startRow === null || startCol === null || !direction) {
             console.warn('Invalid parameters in identifyNewPlacements');
             return [];
         }
         
-        // Phase 1 Fix: Validate blank indices
+        // Validate blank indices
         if (!blankIndices || !(blankIndices instanceof Set)) {
             console.warn('Invalid blankIndices in identifyNewPlacements, using empty Set');
             blankIndices = new Set();
@@ -250,7 +336,7 @@ class GameState {
             const row = direction === 'across' ? startRow : startRow + i;
             const col = direction === 'across' ? startCol + i : startCol;
 
-            // Phase 1 Fix: Add position validation
+            // Add position validation
             if (!this.isValidBoardPosition(row, col)) {
                 console.warn(`Invalid position in identifyNewPlacements: ${row}, ${col}`);
                 continue; // Skip invalid positions
@@ -259,17 +345,17 @@ class GameState {
             const existingTile = this.boardState[row][col];
             const isBlank = blankIndices.has(i);
             
-            // Phase 1 Fix: Critical fix for tile availability when extending existing words
+            // Phase 3 Fix: Correct logic for extending existing words
             if (existingTile) {
-                // This is an existing tile that's part of the word
-                // CRITICAL FIX: Always mark existing tiles as isNew: false to prevent counting against tile supply
+                // This is an existing tile that's part of the word being extended
+                // It should be marked as part of the word but not as a new placement
                 placements.push({ 
                     row, 
                     col, 
                     letter: existingTile.letter, 
                     isBlank: existingTile.isBlank, 
                     wordIndex: i,
-                    isNew: false, // Existing tiles should never count as new placements
+                    isNew: false, // This is an existing tile, not a new placement
                     actualLetter: existingTile.letter
                 });
             } else {
@@ -300,17 +386,18 @@ class GameState {
             }
         }
         
-        // Phase 1 Fix: Validate placements array and add debugging
-        if (placements.length === 0) {
-            console.warn('No valid placements found in identifyNewPlacements');
-        } else {
+        // Phase 3 Fix: Enhanced debugging for extending words
+        if (placements.length > 0) {
+            const newPlacements = placements.filter(p => p.isNew);
+            const existingPlacements = placements.filter(p => !p.isNew);
+            
             console.log('=== IDENTIFY NEW PLACEMENTS DEBUG ===');
             console.log('Word:', word);
             console.log('Start Position:', {row: startRow, col: startCol});
             console.log('Direction:', direction);
-            console.log('Placements:', placements);
-            console.log('New Placements:', placements.filter(p => p.isNew));
-            console.log('Existing Placements:', placements.filter(p => !p.isNew));
+            console.log('Total Placements:', placements.length);
+            console.log('New Placements:', newPlacements);
+            console.log('Existing Placements:', existingPlacements);
             console.log('=== END DEBUG ===');
         }
         
@@ -621,22 +708,59 @@ class GameState {
         let score = 0;
         let wordMultiplier = 1;
 
+        console.log('=== WORD SCORE CALCULATION DEBUG ===');
+        console.log('Word:', wordData.word);
+        console.log('Word Tiles:', wordData.tiles);
+        console.log('New Placements:', newPlacements);
+
         for (const tile of wordData.tiles) {
             let letterScore = tile.isBlank ? 0 : (this.letterScores[tile.letter] || 0);
+            let bonusApplied = false;
 
             // Apply letter bonuses only for newly placed tiles
             if (tile.isNew) {
                 const bonus = this.boardLayout[tile.row][tile.col];
-                if (bonus === 'DLS') letterScore *= 2;
-                if (bonus === 'TLS') letterScore *= 3;
-                if (bonus === 'DWS') wordMultiplier *= 2;
-                if (bonus === 'TWS') wordMultiplier *= 3;
+                
+                // Phase 3 Fix: Check if premium square can be used (not already used)
+                const canUseBonus = this.premiumSquareTracker.canUsePremiumSquare(
+                    this.boardLayout, 
+                    tile.row, 
+                    tile.col, 
+                    tile.isNew
+                );
+                
+                console.log(`Checking ${bonus} bonus at (${tile.row}, ${tile.col}) for tile ${tile.letter}. Can use: ${canUseBonus.canUse}, Reason: ${canUseBonus.reason}`);
+                
+                if (canUseBonus.canUse) {
+                    bonusApplied = true;
+                    if (bonus === 'DLS') {
+                        letterScore *= 2;
+                        console.log(`Applied DLS: ${tile.letter} now worth ${letterScore}`);
+                    }
+                    if (bonus === 'TLS') {
+                        letterScore *= 3;
+                        console.log(`Applied TLS: ${tile.letter} now worth ${letterScore}`);
+                    }
+                    if (bonus === 'DWS') {
+                        wordMultiplier *= 2;
+                        console.log(`Applied DWS: word multiplier now ${wordMultiplier}`);
+                    }
+                    if (bonus === 'TWS') {
+                        wordMultiplier *= 3;
+                        console.log(`Applied TWS: word multiplier now ${wordMultiplier}`);
+                    }
+                }
             }
 
             score += letterScore;
+            console.log(`Tile ${tile.letter} (${tile.isNew ? 'NEW' : 'EXIST'})${bonusApplied ? ' with bonus' : ''} score: ${letterScore}`);
         }
 
-        return score * wordMultiplier;
+        const finalScore = score * wordMultiplier;
+        console.log(`Final word score: ${finalScore} (base: ${score}, multiplier: ${wordMultiplier})`);
+        console.log('=== END WORD SCORE DEBUG ===');
+
+        return finalScore;
     }
 
     // Get perpendicular word for cross-word scoring
@@ -726,25 +850,30 @@ class GameState {
         return score * multiplier;
     }
 
-    // Phase 1 Fix: Improved validateTurnPlacement with comprehensive boundary validation
+    // Phase 3 Fix: Enhanced validateTurnPlacement with Tile Validator integration
     validateTurnPlacement(word, startRow, startCol, direction, blankIndices = new Set()) {
-        // Phase 1 Fix: Validate input parameters first
-        if (!word || typeof word !== 'string' || word.length === 0) {
-            return { valid: false, error: "Word must be a non-empty string." };
+        // Phase 3 Fix: Use Tile Validator for comprehensive validation
+        const tileValidation = this.tileValidator.validateWordPlacement(
+            word, 
+            startRow, 
+            startCol, 
+            direction, 
+            this.boardState, 
+            this.boardLayout, 
+            blankIndices
+        );
+
+        if (!tileValidation.valid) {
+            return {
+                valid: false,
+                error: tileValidation.errors.join('. '),
+                tileValidation
+            };
         }
-        
-        if (startRow === null || startCol === null || !direction) {
-            return { valid: false, error: "Start position and direction must be specified." };
-        }
-        
-        if (!['across', 'down'].includes(direction)) {
-            return { valid: false, error: "Direction must be 'across' or 'down'." };
-        }
-        
-        // Phase 1 Fix: Enhanced boundary validation
-        const boundaryValidation = this.validateWordBoundaries(word, startRow, startCol, direction);
-        if (!boundaryValidation.valid) {
-            return boundaryValidation;
+
+        // Phase 3 Fix: Add tile validator warnings if any
+        if (tileValidation.warnings.length > 0) {
+            console.log('Tile validator warnings:', tileValidation.warnings);
         }
 
         const { breakdown } = this.calculateTurnScore(word, startRow, startCol, direction, blankIndices);
@@ -759,11 +888,12 @@ class GameState {
         }
 
         // Check tile availability
-        const tileValidation = this.validateTileAvailability(newPlacements, blankIndices);
-        if (!tileValidation.valid) {
-            return tileValidation;
+        const tileAvailabilityValidation = this.validateTileAvailability(newPlacements, blankIndices);
+        if (!tileAvailabilityValidation.valid) {
+            return tileAvailabilityValidation;
         }
         
+        // Phase 3 Fix: Enhanced connection validation
         const hasExistingTiles = this.boardState.some(row => row.some(cell => cell !== null));
         if (!hasExistingTiles) {
             // When the board is empty, the word must cover the center star
@@ -772,7 +902,6 @@ class GameState {
                 const row = direction === 'across' ? startRow : startRow + i;
                 const col = direction === 'across' ? startCol + i : startCol;
                 
-                // Phase 1 Fix: Validate each position in the word path
                 if (!this.isValidBoardPosition(row, col)) {
                     return { valid: false, error: `Word extends beyond board boundaries at position ${row}, ${col}.` };
                 }
@@ -796,7 +925,7 @@ class GameState {
             }
         }
 
-        return { valid: true };
+        return { valid: true, tileValidation };
     }
 
     // Phase 1 Fix: New method for comprehensive word boundary validation
@@ -876,11 +1005,17 @@ class GameState {
         return { valid: true };
     }
 
-    // Phase 1 Fix: Critical fix for tile availability validation when extending existing words
+    // Phase 3 Fix: Critical fix for tile availability validation when extending existing words
     validateTileAvailability(newPlacements, blankIndices) {
         const requiredTiles = {};
         
-        // Phase 1 Fix: Only count tiles that are actually NEW (isNew: true)
+        // Phase 3 Fix: Ensure blankIndices is properly handled for word extensions
+        if (!blankIndices || !(blankIndices instanceof Set)) {
+            console.warn('validateTileAvailability: Invalid blankIndices, using empty Set');
+            blankIndices = new Set();
+        }
+        
+        // Phase 3 Fix: Only count tiles that are actually NEW (isNew: true)
         // This prevents counting existing tiles when extending words
         const actuallyNewPlacements = newPlacements.filter(placement => placement.isNew);
         
@@ -888,6 +1023,17 @@ class GameState {
         console.log('All Placements:', newPlacements);
         console.log('Actually New Placements:', actuallyNewPlacements);
         console.log('Blank Indices:', blankIndices);
+        console.log('Blank Indices Type:', typeof blankIndices);
+        console.log('Blank Indices Size:', blankIndices.size);
+        
+        // Phase 3 Fix: Ensure we have at least one new placement (Scrabble rule)
+        if (actuallyNewPlacements.length === 0) {
+            console.log('❌ No new tiles being placed - this violates Scrabble rules');
+            return {
+                valid: false,
+                error: "No new tiles being placed (Scrabble rule violation)"
+            };
+        }
         
         // Count required tiles for ACTUALLY NEW placements only
         actuallyNewPlacements.forEach(placement => {
@@ -968,6 +1114,15 @@ class GameState {
 
         const { breakdown } = this.calculateTurnScore(word, startRow, startCol, direction, blankIndicesSet);
 
+        // Phase 3 Fix: Mark premium squares used in this turn
+        const usedPremiumSquares = this.premiumSquareTracker.markPremiumSquaresForTurn(
+            this.boardLayout, 
+            breakdown.newPlacements
+        );
+        
+        // Store used premium squares in turn record for undo functionality
+        turn.usedPremiumSquares = usedPremiumSquares;
+
         for (let i = 0; i < word.length; i++) {
             const letter = word[i];
             const row = direction === 'across' ? startRow : startRow + i;
@@ -993,6 +1148,9 @@ class GameState {
         
         // Add to history
         this.turnHistory.push(turn);
+        
+        // Phase 4 Fix: Save premium square tracker state after each turn
+        this.premiumSquareTracker.saveState();
         
         // Move to next player
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
@@ -1031,6 +1189,12 @@ class GameState {
                 } else {
                     this.tileSupply[placement.letter]++;
                 }
+            }
+            
+            // Phase 3 Fix: Restore premium squares that were used in the undone turn
+            if (lastTurn.usedPremiumSquares) {
+                this.premiumSquareTracker.restorePremiumSquares(lastTurn.usedPremiumSquares);
+                console.log('Restored premium squares:', lastTurn.usedPremiumSquares);
             }
             
             // Restore current player
