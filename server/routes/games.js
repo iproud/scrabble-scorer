@@ -73,13 +73,13 @@ router.get('/:id', (req, res) => {
             ORDER BY gp.turn_order
         `).all(gameId);
         
-        // Get turns
+        // Get turns with enhanced ordering for robust turn sequence
         const turns = db.prepare(`
             SELECT t.*, p.name as player_name
             FROM turns t
             JOIN players p ON t.player_id = p.id
             WHERE t.game_id = ?
-            ORDER BY t.round_number, t.id
+            ORDER BY t.round_number ASC, t.id ASC
         `).all(gameId);
         
         // Parse JSON fields
@@ -399,6 +399,127 @@ router.delete('/:id/turns/last', (req, res) => {
     } catch (error) {
         console.error('Error undoing last turn:', error);
         res.status(500).json({ error: 'Failed to undo last turn' });
+    }
+});
+
+// GET /api/games/:id/statistics - Get comprehensive game statistics
+router.get('/:id/statistics', (req, res) => {
+    try {
+        const gameId = parseInt(req.params.id);
+        const db = getDatabase();
+        
+        // Get game info
+        const game = db.prepare(`
+            SELECT g.*, w.name as winner_name
+            FROM games g
+            LEFT JOIN players w ON g.winner_id = w.id
+            WHERE g.id = ?
+        `).get(gameId);
+        
+        if (!game) {
+            db.close();
+            return res.status(404).json({ error: 'Game not found' });
+        }
+        
+        // Get players
+        const players = db.prepare(`
+            SELECT p.id, p.name, gp.score, gp.turn_order
+            FROM game_players gp
+            JOIN players p ON gp.player_id = p.id
+            WHERE gp.game_id = ?
+            ORDER BY gp.turn_order
+        `).all(gameId);
+        
+        // Get turns with proper field names
+        const turns = db.prepare(`
+            SELECT t.*, p.name as player_name
+            FROM turns t
+            JOIN players p ON t.player_id = p.id
+            WHERE t.game_id = ?
+            ORDER BY t.round_number, t.id
+        `).all(gameId);
+        
+        // Parse JSON fields and standardize field names
+        const processedTurns = turns.map(turn => ({
+            ...turn,
+            playerId: turn.player_id,
+            roundNumber: turn.round_number,
+            secondaryWords: JSON.parse(turn.secondary_words || '[]'),
+            blankTiles: JSON.parse(turn.blank_tiles || '[]'),
+            boardStateAfter: JSON.parse(turn.board_state_after || '[]')
+        }));
+        
+        // Calculate statistics
+        const totalTurns = processedTurns.length;
+        const playersCount = players.length;
+        const currentRound = totalTurns > 0 ? Math.floor((totalTurns - 1) / playersCount) + 1 : 1;
+        
+        // Find highest scoring turn
+        let highestScoringTurn = null;
+        const validTurns = processedTurns.filter(turn => 
+            turn && 
+            typeof turn.score === 'number' && 
+            turn.score > 0 && 
+            turn.word && 
+            turn.word.trim().length > 0
+        );
+        
+        if (validTurns.length > 0) {
+            highestScoringTurn = validTurns.reduce((max, turn) => 
+                turn.score > max.score ? turn : max, validTurns[0]);
+        }
+        
+        // Calculate player statistics
+        const playerStats = players.map(player => {
+            const playerTurns = processedTurns.filter(t => t.playerId === player.id);
+            const validPlayerTurns = playerTurns.filter(t => 
+                typeof t.score === 'number' && t.score > 0
+            );
+            const averageScore = validPlayerTurns.length > 0 
+                ? validPlayerTurns.reduce((sum, t) => sum + t.score, 0) / validPlayerTurns.length 
+                : 0;
+
+            return {
+                ...player,
+                averageScore: Math.round(averageScore * 100) / 100,
+                totalTurns: playerTurns.length,
+                validTurns: validPlayerTurns.length
+            };
+        });
+        
+        // Create turn map for reliable round-player lookup
+        // FIXED: Support multiple turns per round-player combination
+        const turnMap = new Map();
+        processedTurns.forEach((turn, index) => {
+            const round = turn.roundNumber || Math.floor(index / playersCount) + 1;
+            const playerId = turn.playerId;
+            const key = `${round}-${playerId}`;
+            
+            // Store all turns for each round-player combination in an array
+            if (!turnMap.has(key)) {
+                turnMap.set(key, []);
+            }
+            turnMap.get(key).push({ ...turn, computedRound: round });
+        });
+        
+        const statistics = {
+            gameId,
+            gameStatus: game.status,
+            currentRound,
+            highestScoringTurn,
+            totalTurns,
+            validTurns: validTurns.length,
+            players: playerStats,
+            turns: processedTurns,
+            turnMap: Array.from(turnMap.entries()),
+            winningScore: Math.max(...players.map(p => p.score || 0))
+        };
+        
+        db.close();
+        res.json(statistics);
+    } catch (error) {
+        console.error('Error fetching game statistics:', error);
+        res.status(500).json({ error: 'Failed to fetch game statistics' });
     }
 });
 

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turn Order Test Suite</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .test-case { margin: 15px 0; padding: 10px; border-left: 4px solid #007bff; }
+        .expected { background-color: #e7f3ff; }
+        .actual { background-color: #f8f9fa; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Scrabble Scorer - Turn Order Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>Test Game Resumption Logic</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="runResumeTests()">Test Game Resumption Only</button>
+        <button onclick="runUndoTests()">Test Undo Logic Only</button>
+        <div id="test-results"></div>
+    </div>
+
+    <script src="client/js/game-state.js"></script>
+    <script>
+        // Mock game state for testing
+        let testGameState;
+        let testResults = [];
+        
+        function initializeTestGameState() {
+            testGameState = new GameState();
+            testGameState.players = [
+                { id: 1, name: 'Alice', score: 0 },
+                { id: 2, name: 'Bob', score: 0 },
+                { id: 3, name: 'Charlie', score: 0 }
+            ];
+        }
+        
+        function logResult(testName, expected, actual, passed) {
+            const result = {
+                testName,
+                expected,
+                actual,
+                passed,
+                timestamp: new Date().toISOString()
+            };
+            testResults.push(result);
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${passed ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <strong>${testName}</strong>: ${passed ? 'PASS' : 'FAIL'}<br>
+                <div class="expected">Expected: ${JSON.stringify(expected)}</div>
+                <div class="actual">Actual: ${JSON.stringify(actual)}</div>
+            `;
+            document.getElementById('test-results').appendChild(resultDiv);
+        }
+        
+        function createMockTurn(playerId, roundNumber, word = 'TEST') {
+            return {
+                playerId: playerId,
+                player_id: playerId,
+                round_number: roundNumber,
+                word: word,
+                score: 10,
+                boardStateAfter: Array(15).fill(null).map(() => Array(15).fill(null)),
+                startRow: 7,
+                startCol: 7,
+                direction: 'across',
+                blankTiles: []
+            };
+        }
+        
+        // Test Case 1: Normal game resumption - complete rounds
+        function testResumeCompleteRounds() {
+            initializeTestGameState();
+            
+            // Simulate 6 complete turns (2 full rounds for 3 players)
+            testGameState.turnHistory = [
+                createMockTurn(1, 1, 'HELLO'),  // Alice, Round 1
+                createMockTurn(2, 1, 'WORLD'),  // Bob, Round 1
+                createMockTurn(3, 1, 'TEST'),   // Charlie, Round 1
+                createMockTurn(1, 2, 'GAME'),   // Alice, Round 2
+                createMockTurn(2, 2, 'PLAY'),   // Bob, Round 2
+                createMockTurn(3, 2, 'WORD')    // Charlie, Round 2
+            ];
+            
+            const expectedPlayerIndex = 0; // Should be Alice's turn (start of round 3)
+            const actualPlayerIndex = testGameState.calculateCurrentPlayerOnResume();
+            
+            logResult(
+                'Resume Complete Rounds',
+                `Player index ${expectedPlayerIndex} (Alice)`,
+                `Player index ${actualPlayerIndex} (${testGameState.players[actualPlayerIndex]?.name})`,
+                expectedPlayerIndex === actualPlayerIndex
+            );
+        }
+        
+        // Test Case 2: Incomplete round resumption
+        function testResumeIncompleteRound() {
+            initializeTestGameState();
+            
+            // Simulate 4 turns - Alice and Bob played in round 2, Charlie hasn't
+            testGameState.turnHistory = [
+                createMockTurn(1, 1, 'HELLO'),  // Alice, Round 1
+                createMockTurn(2, 1, 'WORLD'),  // Bob, Round 1
+                createMockTurn(3, 1, 'TEST'),   // Charlie, Round 1
+                createMockTurn(1, 2, 'GAME')    // Alice, Round 2 (Bob and Charlie haven't played)
+            ];
+            
+            const expectedPlayerIndex = 1; // Should be Bob's turn (round 2 incomplete)
+            const actualPlayerIndex = testGameState.calculateCurrentPlayerOnResume();
+            
+            logResult(
+                'Resume Incomplete Round',
+                `Player index ${expectedPlayerIndex} (Bob)`,
+                `Player index ${actualPlayerIndex} (${testGameState.players[actualPlayerIndex]?.name})`,
+                expectedPlayerIndex === actualPlayerIndex
+            );
+        }
+        
+        // Test Case 3: Single turn resumption
+        function testResumeSingleTurn() {
+            initializeTestGameState();
+            
+            // Only Alice has played
+            testGameState.turnHistory = [
+                createMockTurn(1, 1, 'HELLO')   // Alice, Round 1
+            ];
+            
+            const expectedPlayerIndex = 1; // Should be Bob's turn
+            const actualPlayerIndex = testGameState.calculateCurrentPlayerOnResume();
+            
+            logResult(
+                'Resume Single Turn',
+                `Player index ${expectedPlayerIndex} (Bob)`,
+                `Player index ${actualPlayerIndex} (${testGameState.players[actualPlayerIndex]?.name})`,
+                expectedPlayerIndex === actualPlayerIndex
+            );
+        }
+        
+        // Test Case 4: Empty game resumption
+        function testResumeEmptyGame() {
+            initializeTestGameState();
+            
+            // No turns played
+            testGameState.turnHistory = [];
+            
+            const expectedPlayerIndex = 0; // Should be Alice's turn
+            const actualPlayerIndex = testGameState.calculateCurrentPlayerOnResume();
+            
+            logResult(
+                'Resume Empty Game',
+                `Player index ${expectedPlayerIndex} (Alice)`,
+                `Player index ${actualPlayerIndex} (${testGameState.players[actualPlayerIndex]?.name})`,
+                expectedPlayerIndex === actualPlayerIndex
+            );
+        }
+        
+        // Test Case 5: Post-undo resumption simulation
+        function testResumeAfterUndo() {
+            initializeTestGameState();
+            
+            // Simulate game state after undo: 5 turns (Charlie's turn in round 2 was undone)
+            testGameState.turnHistory = [
+                createMockTurn(1, 1, 'HELLO'),  // Alice, Round 1
+                createMockTurn(2, 1, 'WORLD'),  // Bob, Round 1
+                createMockTurn(3, 1, 'TEST'),   // Charlie, Round 1
+                createMockTurn(1, 2, 'GAME'),   // Alice, Round 2
+                createMockTurn(2, 2, 'PLAY')    // Bob, Round 2 (Charlie's turn was undone)
+            ];
+            
+            const expectedPlayerIndex = 2; // Should be Charlie's turn (round 2 incomplete)
+            const actualPlayerIndex = testGameState.calculateCurrentPlayerOnResume();
+            
+            logResult(
+                'Resume After Undo Simulation',
+                `Player index ${expectedPlayerIndex} (Charlie)`,
+                `Player index ${actualPlayerIndex} (${testGameState.players[actualPlayerIndex]?.name})`,
+                expectedPlayerIndex === actualPlayerIndex
+            );
+        }
+        
+        // Test Case 6: Edge case - missing player in turn history
+        function testResumeMissingPlayer() {
+            initializeTestGameState();
+            
+            // Simulate turns where Bob (id: 2) is missing from turn history
+            testGameState.turnHistory = [
+                createMockTurn(1, 1, 'HELLO'),  // Alice, Round 1
+                createMockTurn(3, 1, 'TEST'),   // Charlie, Round 1 (Bob skipped)
+                createMockTurn(1, 2, 'GAME'),   // Alice, Round 2
+                createMockTurn(3, 2, 'WORD')    // Charlie, Round 2 (Bob skipped again)
+            ];
+            
+            const expectedPlayerIndex = 1; // Should be Bob's turn (round 2 incomplete)
+            const actualPlayerIndex = testGameState.calculateCurrentPlayerOnResume();
+            
+            logResult(
+                'Resume Missing Player',
+                `Player index ${expectedPlayerIndex} (Bob)`,
+                `Player index ${actualPlayerIndex} (${testGameState.players[actualPlayerIndex]?.name})`,
+                expectedPlayerIndex === actualPlayerIndex
+            );
+        }
+        
+        // Test Case 7: Two player game
+        function testResumeTwoPlayers() {
+            initializeTestGameState();
+            testGameState.players = [
+                { id: 1, name: 'Alice', score: 0 },
+                { id: 2, name: 'Bob', score: 0 }
+            ];
+            
+            // 3 turns - Alice, Bob, Alice
+            testGameState.turnHistory = [
+                createMockTurn(1, 1, 'HELLO'),  // Alice, Round 1
+                createMockTurn(2, 1, 'WORLD'),  // Bob, Round 1
+                createMockTurn(1, 2, 'GAME')    // Alice, Round 2
+            ];
+            
+            const expectedPlayerIndex = 1; // Should be Bob's turn
+            const actualPlayerIndex = testGameState.calculateCurrentPlayerOnResume();
+            
+            logResult(
+                'Resume Two Players',
+                `Player index ${expectedPlayerIndex} (Bob)`,
+                `Player index ${actualPlayerIndex} (${testGameState.players[actualPlayerIndex]?.name})`,
+                expectedPlayerIndex === actualPlayerIndex
+            );
+        }
+        
+        // Test validation logic
+        function testValidationLogic() {
+            initializeTestGameState();
+            
+            // Create turns with validation issues
+            testGameState.turnHistory = [
+                createMockTurn(1, 1, 'HELLO'),
+                createMockTurn(2, 1, 'WORLD'),
+                createMockTurn(1, 2, 'GAME'),   // Duplicate player in round 2
+                createMockTurn(2, 4, 'WORD')    // Round gap (round 3 missing)
+            ];
+            
+            const validation = testGameState.validateAndRepairTurnOrder();
+            
+            logResult(
+                'Validation Logic',
+                'Should detect round gap and duplicate player',
+                `Issues found: ${validation.issues.length}`,
+                validation.issues.length >= 2
+            );
+        }
+        
+        function runResumeTests() {
+            document.getElementById('test-results').innerHTML = '<h3>Game Resumption Tests</h3>';
+            testResults = [];
+            
+            testResumeEmptyGame();
+            testResumeSingleTurn();
+            testResumeCompleteRounds();
+            testResumeIncompleteRound();
+            testResumeAfterUndo();
+            testResumeMissingPlayer();
+            testResumeTwoPlayers();
+            
+            const passed = testResults.filter(r => r.passed).length;
+            const total = testResults.length;
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = `result ${passed === total ? 'success' : 'warning'}`;
+            summaryDiv.innerHTML = `<strong>Resumption Tests Summary:</strong> ${passed}/${total} tests passed`;
+            document.getElementById('test-results').appendChild(summaryDiv);
+        }
+        
+        function runUndoTests() {
+            document.getElementById('test-results').innerHTML = '<h3>Undo Logic Tests</h3>';
+            testResults = [];
+            
+            testValidationLogic();
+            
+            const passed = testResults.filter(r => r.passed).length;
+            const total = testResults.length;
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = `result ${passed === total ? 'success' : 'warning'}`;
+            summaryDiv.innerHTML = `<strong>Undo Tests Summary:</strong> ${passed}/${total} tests passed`;
+            document.getElementById('test-results').appendChild(summaryDiv);
+        }
+        
+        function runAllTests() {
+            document.getElementById('test-results').innerHTML = '<h3>All Turn Order Tests</h3>';
+            testResults = [];
+            
+            // Run all test categories
+            testResumeEmptyGame();
+            testResumeSingleTurn();
+            testResumeCompleteRounds();
+            testResumeIncompleteRound();
+            testResumeAfterUndo();
+            testResumeMissingPlayer();
+            testResumeTwoPlayers();
+            testValidationLogic();
+            
+            const passed = testResults.filter(r => r.passed).length;
+            const total = testResults.length;
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = `result ${passed === total ? 'success' : 'error'}`;
+            summaryDiv.innerHTML = `<strong>All Tests Summary:</strong> ${passed}/${total} tests passed`;
+            
+            if (passed === total) {
+                summaryDiv.innerHTML += '<br>✅ All turn order logic is working correctly!';
+            } else {
+                summaryDiv.innerHTML += '<br>❌ Some tests failed - check the implementation';
+            }
+            
+            document.getElementById('test-results').appendChild(summaryDiv);
+            
+            // Log detailed results to console
+            console.log('=== TURN ORDER TEST RESULTS ===');
+            testResults.forEach(result => {
+                console.log(`${result.passed ? 'PASS' : 'FAIL'}: ${result.testName}`);
+                if (!result.passed) {
+                    console.log(`  Expected: ${result.expected}`);
+                    console.log(`  Actual: ${result.actual}`);
+                }
+            });
+            console.log('=== END TEST RESULTS ===');
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initializeTestGameState();
+            console.log('Turn Order Test Suite loaded. Click a button to run tests.');
+        });
+    </script>
+</body>
+</html>

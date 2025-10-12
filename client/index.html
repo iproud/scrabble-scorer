@@ -255,131 +255,101 @@
             </div>
         </div>
 
-        <!-- Finish Game Modal -->
-        <div id="finish-game-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
-            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-4xl w-full max-h-[90vh] flex flex-col">
-                <div class="flex justify-between items-center mb-6">
+
+        <!-- Finish Game Modal 1: Select Who Ended the Game -->
+        <div id="finish-game-modal-1" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">Finish Game</h2>
-                    <button id="close-finish-game-btn" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none" aria-label="Close modal" title="Cancel and return to game">&times;</button>
                 </div>
-                
-                <!-- Step 1: Select Ending Player -->
-                <div id="finish-step-1" class="flex-grow flex flex-col">
-                    <div class="mb-4">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Select Who Ended the Game</h3>
-                    </div>
-                    
-                    <div id="ending-player-selection" class="space-y-2 mb-6">
-                        <!-- Player options will be injected here -->
-                    </div>
-                    
-                    <div class="flex justify-end">
-                        <button id="finish-step-1-next" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                            Next
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Step 2: Assign Remaining Tiles -->
-                <div id="finish-step-2" class="hidden flex-grow flex flex-col">
-                    <div class="mb-4">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Step 2: Assign Remaining Tiles</h3>
-                        <p class="text-sm text-gray-600">Click tiles from the pool to assign them to players. Click assigned tiles to return them.</p>
-                    </div>
-                    
-                    <div class="flex-grow overflow-y-auto">
-                        <!-- Single table format -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-50">
-                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Who Ended The Game</th>
-                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Player</th>
-                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Tiles Unplayed</th>
-                                        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Score Adjustment</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tile-assignment-table">
-                                    <!-- Player rows will be injected here -->
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="border-t pt-4 mt-4">
-                            <h4 class="text-sm font-semibold text-gray-700 mb-2">Tiles Leftover:</h4>
-                            <div id="remaining-tiles-pool" class="flex flex-wrap gap-2 min-h-[60px] p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                                <!-- Remaining tiles will be injected here -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-between mt-6">
-                        <button id="finish-step-2-back" class="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
-                            Back
-                        </button>
-                        <button id="finish-step-2-finish" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition">
-                            Finish Game
-                        </button>
-                    </div>
+                <p class="text-gray-600 mb-6">Select the player who went out.</p>
+                <div id="game-ender-list" class="space-y-2 mb-6">
+                    <!-- Player buttons will be dynamically inserted here -->
                 </div>
             </div>
         </div>
 
-        <!-- Finish Game Modal Flow Container -->
-        <div id="finish-game-flow-container" class="modal-container" style="display: none;">
-            <div class="modal-backdrop"></div>
+        <!-- Finish Game Modal 2: Assign Leftover Tiles -->
+        <div id="finish-game-modal-2" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Assign Remaining Tiles</h2>
+                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none" aria-label="Close modal" title="Cancel and return to game">&times;</button>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                    <p class="text-sm text-gray-600 mb-1">Player Who Finished</p>
+                    <p id="game-ender-name" class="text-lg font-bold text-indigo-600"></p>
+                </div>
+                
+                <p class="text-gray-600 mb-4">Tap a player to select them, then tap tiles to assign.</p>
+                
+                <div class="flex-grow overflow-y-auto">
+                    <div id="tile-recipient-list" class="space-y-2 mb-4">
+                        <!-- Player cards for tile assignment will be inserted here -->
+                    </div>
 
-            <!-- Modal 1: Select Who Ended the Game -->
-            <div id="finish-game-modal-1" class="modal-content">
-                <h2 class="modal-title">Finish Game</h2>
-                <p class="modal-subtitle">Select the player who went out.</p>
-                <div id="game-ender-list" class="modal-body-section">
-                    <!-- Player buttons will be dynamically inserted here -->
+                    <div class="border-t pt-4 mt-4">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2">Unassigned Tiles</h3>
+                        <div id="leftover-tiles-grid" class="flex flex-wrap gap-2 min-h-[60px] p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                            <!-- Unassigned tiles will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between mt-6">
+                    <button id="finish-step-2-back" class="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
+                        Back
+                    </button>
+                    <button id="finish-and-calculate-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition">
+                        Finish & Calculate Scores
+                    </button>
                 </div>
             </div>
+        </div>
 
-            <!-- Modal 2: Assign Leftover Tiles -->
-            <div id="finish-game-modal-2" class="modal-content" style="display: none;">
-                <div id="modal-2-header">
-                    <p>Player Who Finished</p>
-                    <p id="game-ender-name"></p>
+        <!-- Finish Game Modal 3: Game Over! -->
+        <div id="finish-game-modal-3" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Game Over!</h2>
+                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none" aria-label="Close modal" title="Close and view finished game">&times;</button>
                 </div>
-                
-                <p class="modal-subtitle">Tap a player to select them, then tap tiles to assign.</p>
-                
-                <div id="tile-recipient-list" class="modal-body-section">
-                    <!-- Player cards for tile assignment will be inserted here -->
-                </div>
-
-                <p class="section-title">Unassigned Tiles</p>
-                <div id="leftover-tiles-grid" class="modal-body-section">
-                    <!-- Unassigned tiles will be inserted here -->
-                </div>
-                
-                <button id="finish-and-calculate-btn" class="modal-button primary-button">Finish & Calculate Scores</button>
-            </div>
-
-            <!-- Modal 3: Game Over! -->
-            <div id="finish-game-modal-3" class="modal-content" style="display: none;">
-                <h2 class="modal-title">Game Over!</h2>
-                <p id="winner-announcement" class="modal-subtitle"></p>
-                <div id="final-scores-list" class="modal-body-section">
+                <p id="winner-announcement" class="text-gray-600 mb-6"></p>
+                <div id="final-scores-list" class="space-y-2 mb-6">
                    <!-- Final scores will be inserted here -->
                 </div>
-                <button id="restart-game-btn" class="modal-button primary-button">Start New Game</button>
+                <button id="restart-game-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition">
+                    Start New Game
+                </button>
             </div>
         </div>
 
         <!-- Word Validation Modal -->
-        <div id="word-validation-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-90">
-            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full text-center">
-                <h2 class="text-2xl font-bold mb-4 text-orange-600">⚠️ Word Validation Warning</h2>
-                <div id="validation-message" class="mb-6 text-gray-700 whitespace-pre-line"></div>
-                <div class="flex gap-4">
-                    <button id="validation-cancel-btn" class="flex-1 bg-gray-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition">
+        <div id="word-validation-modal" class="fixed inset-0 hidden z-[9999]">
+            <!-- Modal Backdrop -->
+            <div class="modal-backdrop"></div>
+            
+            <!-- Modal Content -->
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h2 class="modal-title">⚠️ Word Validation Warning</h2>
+                    <button class="close-modal-btn close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none" aria-label="Close modal" title="Cancel and return to game">&times;</button>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <div id="validation-message" class="validation-message text-gray-700 whitespace-pre-line"></div>
+                </div>
+                
+                <!-- Modal Actions -->
+                <div class="modal-actions">
+                    <button id="validation-cancel-btn" class="modal-button secondary-button">
                         Cancel
                     </button>
-                    <button id="validation-proceed-btn" class="flex-1 bg-orange-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-700 transition">
+                    <button id="validation-proceed-btn" class="modal-button primary-button">
                         Proceed Anyway
                     </button>
                 </div>

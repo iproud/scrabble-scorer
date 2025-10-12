@@ -240,6 +240,11 @@ class ScrabbleAPI {
         return data;
     }
 
+    // Get comprehensive game statistics
+    async getGameStatistics(gameId) {
+        return this.request(`/games/${gameId}/statistics`);
+    }
+
     // Dictionary management
     async getDictionaries() {
         return await this.request('/dictionaries');

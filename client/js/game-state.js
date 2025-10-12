@@ -60,7 +60,6 @@ class GameState {
         console.log('GameState: Initializing game with ID', gameData.id);
         this.gameId = gameData.id;
         this.players = gameData.players || [];
-        this.currentPlayerIndex = 0;
         this.turnHistory = gameData.turns || [];
         this.isGameActive = gameData.status === 'active';
         
@@ -77,6 +76,17 @@ class GameState {
         // Replay turns to rebuild board state
         this.replayTurns();
         this.restoreTileSupply(); // Restore tile supply after replaying turns
+        
+        // CRITICAL FIX: Calculate correct current player for resumption
+        this.currentPlayerIndex = this.calculateCurrentPlayerOnResume();
+        
+        // Validate turn order and log any issues
+        const validation = this.validateAndRepairTurnOrder();
+        if (validation.issues.length > 0) {
+            console.warn('Game resumption with issues:', validation.issues);
+        }
+        
+        console.log(`Game resumed: ${this.turnHistory.length} turns, current player: ${this.getCurrentPlayer()?.name} (index ${this.currentPlayerIndex})`);
     }
 
     // Replay turns to rebuild board state
@@ -204,6 +214,137 @@ class GameState {
     // Get current player
     getCurrentPlayer() {
         return this.players[this.currentPlayerIndex] || null;
+    }
+
+    // CRITICAL FIX: Calculate correct current player for game resumption
+    calculateCurrentPlayerOnResume() {
+        if (this.turnHistory.length === 0) {
+            console.log('Resume: No turn history, starting with first player (index 0)');
+            return 0; // New game - first player
+        }
+        
+        // Get the last turn that was actually played
+        const lastTurn = this.turnHistory[this.turnHistory.length - 1];
+        const lastPlayerId = lastTurn.playerId || lastTurn.player_id;
+        const lastRoundNumber = lastTurn.round_number;
+        
+        console.log('Resume: Last turn analysis:', {
+            lastPlayerId,
+            lastRoundNumber,
+            totalTurns: this.turnHistory.length,
+            playersCount: this.players.length
+        });
+        
+        // Find the last player's index in our players array
+        const lastPlayerIndex = this.players.findIndex(p => p.id === lastPlayerId);
+        if (lastPlayerIndex === -1) {
+            console.warn('Resume: Last player not found in current players list, defaulting to first player');
+            return 0;
+        }
+        
+        // Simple case: next player in sequence
+        let nextPlayerIndex = (lastPlayerIndex + 1) % this.players.length;
+        
+        // Complex case: check if round is complete
+        const turnsInCurrentRound = this.turnHistory.filter(t => t.round_number === lastRoundNumber);
+        const isRoundComplete = turnsInCurrentRound.length === this.players.length;
+        
+        console.log('Resume: Round analysis:', {
+            lastPlayerIndex,
+            nextPlayerIndex,
+            turnsInCurrentRound: turnsInCurrentRound.length,
+            expectedTurnsInRound: this.players.length,
+            isRoundComplete
+        });
+        
+        if (isRoundComplete) {
+            // Round is complete, start new round with first player
+            console.log('Resume: Round complete, starting new round with first player (index 0)');
+            return 0; // First player starts new round
+        } else {
+            // Round is incomplete, find who hasn't played yet
+            const playersWhoPlayedInRound = turnsInCurrentRound.map(t => t.playerId || t.player_id);
+            const playersWhoHaventPlayed = this.players.filter(p => !playersWhoPlayedInRound.includes(p.id));
+            
+            console.log('Resume: Incomplete round analysis:', {
+                playersWhoPlayedInRound,
+                playersWhoHaventPlayed: playersWhoHaventPlayed.map(p => ({ id: p.id, name: p.name }))
+            });
+            
+            if (playersWhoHaventPlayed.length === 1) {
+                // Only one player hasn't played - they're next
+                const nextPlayer = playersWhoHaventPlayed[0];
+                const nextIndex = this.players.findIndex(p => p.id === nextPlayer.id);
+                console.log(`Resume: Single player hasn't played in round ${lastRoundNumber}: ${nextPlayer.name} (index ${nextIndex})`);
+                return nextIndex;
+            } else if (playersWhoHaventPlayed.length > 1) {
+                // Multiple players haven't played - find the one after last player
+                console.log(`Resume: Multiple players haven't played, using sequential logic: player ${nextPlayerIndex}`);
+                return nextPlayerIndex;
+            } else {
+                // This shouldn't happen, but fallback to sequential logic
+                console.warn('Resume: Unexpected state in incomplete round, using sequential logic');
+                return nextPlayerIndex;
+            }
+        }
+    }
+
+    // Validate and repair turn order for data integrity
+    validateAndRepairTurnOrder() {
+        const issues = [];
+        const repairs = [];
+        
+        if (!this.turnHistory || this.turnHistory.length === 0) {
+            return { issues, repairs };
+        }
+        
+        // Check 1: Round sequence consistency
+        const rounds = [...new Set(this.turnHistory.map(t => t.round_number))].sort();
+        for (let i = 1; i < rounds.length; i++) {
+            if (rounds[i] !== rounds[i-1] + 1) {
+                issues.push(`Round gap: ${rounds[i-1]} to ${rounds[i]}`);
+            }
+        }
+        
+        // Check 2: Player turn consistency within rounds
+        const roundPlayerMap = new Map();
+        this.turnHistory.forEach(turn => {
+            const key = turn.round_number;
+            if (!roundPlayerMap.has(key)) {
+                roundPlayerMap.set(key, []);
+            }
+            roundPlayerMap.get(key).push(turn.playerId || turn.player_id);
+        });
+        
+        roundPlayerMap.forEach((playerIds, roundNum) => {
+            if (playerIds.length > this.players.length) {
+                issues.push(`Round ${roundNum} has ${playerIds.length} turns but only ${this.players.length} players`);
+            }
+            
+            // Check for duplicate players in same round
+            const duplicates = playerIds.filter((id, index) => playerIds.indexOf(id) !== index);
+            if (duplicates.length > 0) {
+                issues.push(`Round ${roundNum} has duplicate players: ${duplicates}`);
+            }
+        });
+        
+        // Check 3: Turn order sequence consistency
+        for (let i = 1; i < this.turnHistory.length; i++) {
+            const currentTurn = this.turnHistory[i];
+            const previousTurn = this.turnHistory[i-1];
+            
+            // Check for chronological consistency
+            if (currentTurn.round_number < previousTurn.round_number) {
+                issues.push(`Turn order violation: Turn ${i} (round ${currentTurn.round_number}) comes after turn ${i-1} (round ${previousTurn.round_number})`);
+            }
+        }
+        
+        if (issues.length > 0) {
+            console.warn('Turn order validation issues detected:', issues);
+            // Could implement repair logic here in the future
+        }
+        
+        return { issues, repairs };
     }
 
     // Phase 1 Fix: Board state validation methods
@@ -1173,6 +1314,13 @@ class GameState {
             // If successful, proceed with client-side state restoration
             const lastTurn = this.turnHistory.pop();
             
+            console.log('Undo: Restoring state after undoing turn:', {
+                undonePlayerIndex: lastTurn.playerIndex,
+                undonePlayerId: lastTurn.playerId,
+                turnsBeforeUndo: this.turnHistory.length + 1,
+                turnsAfterUndo: this.turnHistory.length
+            });
+            
             // Restore board state (using the state *before* the undone turn)
             this.boardState = JSON.parse(JSON.stringify(lastTurn.boardStateBefore));
             
@@ -1197,8 +1345,16 @@ class GameState {
                 console.log('Restored premium squares:', lastTurn.usedPremiumSquares);
             }
             
-            // Restore current player
-            this.currentPlayerIndex = lastTurn.playerIndex;
+            // CRITICAL FIX: Recalculate current player after undo using same logic as resume
+            const currentPlayerBeforeUndo = this.currentPlayerIndex;
+            this.currentPlayerIndex = this.calculateCurrentPlayerOnResume();
+            
+            console.log('Undo: Current player recalculation:', {
+                currentPlayerBeforeUndo,
+                currentPlayerAfterUndo: this.currentPlayerIndex,
+                nextPlayerName: this.getCurrentPlayer()?.name,
+                logic: 'Using same calculateCurrentPlayerOnResume logic as game resumption'
+            });
             
             return true;
 
@@ -1250,22 +1406,62 @@ class GameState {
 
     // Get game statistics
     getGameStats() {
-        const currentRound = Math.floor(this.turnHistory.length / this.players.length) + 1;
+        // Fix: Calculate current round more accurately, handling incomplete rounds
+        const totalTurns = this.turnHistory.length;
+        const playersCount = this.players.length;
+        const currentRound = Math.floor((totalTurns - 1) / playersCount) + 1;
+        
         let highestScoringTurn = null;
         
+        // Fix: Ensure we have valid turn data before finding highest scoring turn
         if (this.turnHistory.length > 0) {
-            highestScoringTurn = this.turnHistory.reduce((max, turn) => 
-                turn.score > max.score ? turn : max, this.turnHistory[0]);
+            // Filter out any invalid turns
+            const validTurns = this.turnHistory.filter(turn => 
+                turn && 
+                typeof turn.score === 'number' && 
+                turn.score > 0 && 
+                turn.word && 
+                turn.word.trim().length > 0
+            );
+            
+            if (validTurns.length > 0) {
+                highestScoringTurn = validTurns.reduce((max, turn) => 
+                    turn.score > max.score ? turn : max, validTurns[0]);
+            }
         }
+
+        // Fix: Calculate player statistics with better error handling
+        const playerStats = this.players.map(player => {
+            const playerTurns = this.turnHistory.filter(t => 
+                t.playerId === player.id || t.player_id === player.id
+            );
+            const validPlayerTurns = playerTurns.filter(t => 
+                typeof t.score === 'number' && t.score > 0
+            );
+            const averageScore = validPlayerTurns.length > 0 
+                ? validPlayerTurns.reduce((sum, t) => sum + t.score, 0) / validPlayerTurns.length 
+                : 0;
+
+            return {
+                ...player,
+                averageScore: Math.round(averageScore * 100) / 100, // Round to 2 decimal places
+                totalTurns: playerTurns.length,
+                validTurns: validPlayerTurns.length
+            };
+        });
 
         return {
             currentRound,
             highestScoringTurn,
-            totalTurns: this.turnHistory.length,
-            players: this.players.map(player => ({
-                ...player,
-                averageScore: player.score / Math.max(1, this.turnHistory.filter(t => t.playerId === player.id).length)
-            }))
+            totalTurns,
+            players: playerStats,
+            validTurns: this.turnHistory.filter(t => 
+                t && 
+                typeof t.score === 'number' && 
+                t.score > 0 && 
+                t.word && 
+                t.word.trim().length > 0
+            ).length
         };
     }
 

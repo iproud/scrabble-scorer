@@ -51,10 +51,30 @@ class RealTimeTilePlacement {
      * Stop real-time tile placement
      */
     stopPlacement() {
-        console.log('Real-Time Tile Placement: Stopping placement');
+        console.log('Real-Time Tile Placement: Stopping placement - comprehensive cleanup');
         this.isActive = false;
         this.currentWord = '';
-        this.clearTiles();
+        
+        // Phase 1 Fix: Enhanced cleanup with validation
+        try {
+            this.clearTiles();
+            
+            // Reset all state variables
+            this.startRow = null;
+            this.startCol = null;
+            this.direction = null;
+            
+            // Clear any remaining references
+            this.currentTiles.clear();
+            this.previewTiles.clear();
+            
+            console.log('Real-Time Tile Placement: Cleanup completed successfully');
+        } catch (error) {
+            console.error('Real-Time Tile Placement: Error during cleanup:', error);
+            // Force cleanup even if there's an error
+            this.currentTiles.clear();
+            this.previewTiles.clear();
+        }
     }
 
     /**
@@ -253,6 +273,29 @@ class RealTimeTilePlacement {
             }
         }
         return conflicts;
+    }
+
+    /**
+     * Phase 1 Fix: Validate cleanup was successful
+     * @returns {boolean} True if cleanup was successful
+     */
+    validateCleanup() {
+        const hasActiveTiles = this.previewTiles.size > 0 || this.currentTiles.size > 0;
+        const hasActiveState = this.isActive;
+        
+        if (hasActiveTiles || hasActiveState) {
+            console.warn('Real-Time Tile Placement: Incomplete cleanup detected', {
+                activeTiles: this.previewTiles.size,
+                currentTiles: this.currentTiles.size,
+                isActive: this.isActive
+            });
+            
+            // Force cleanup
+            this.stopPlacement();
+            return false;
+        }
+        
+        return true;
     }
 }
 

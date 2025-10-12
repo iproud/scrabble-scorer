@@ -591,9 +591,177 @@ body.mobile-game-sheet-open {
     z-index: 40;
 }
 
+/* Word Validation Modal - Consistent with other modals */
 #word-validation-modal {
-    z-index: 9999 !important;
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 1000;
 }
+
+#word-validation-modal.hidden {
+    display: none;
+}
+
+#word-validation-modal .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(1px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease-out;
+    z-index: 999;
+}
+
+#word-validation-modal .modal-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#word-validation-modal .modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+    width: 90%;
+    max-width: 480px;
+    text-align: center;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Mobile responsive styles for word validation modal */
+@media (max-width: 640px) {
+    #word-validation-modal {
+        padding: 0.5rem;
+        z-index: 1001;
+    }
+    
+    #word-validation-modal .modal-content {
+        width: 95%;
+        max-width: 400px;
+        padding: 1.5rem;
+        margin: 0 auto;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    #word-validation-modal .modal-header {
+        margin-bottom: 1rem;
+    }
+    
+    #word-validation-modal .modal-title {
+        font-size: 1.5rem;
+        line-height: 1.2;
+    }
+    
+    #word-validation-modal .close-modal-btn {
+        font-size: 1.25rem;
+        padding: 0.125rem;
+    }
+    
+    #word-validation-modal .modal-body {
+        margin-bottom: 1rem;
+    }
+    
+    #word-validation-modal .validation-message {
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 1rem;
+    }
+    
+    #word-validation-modal .modal-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    #word-validation-modal .modal-button {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.9rem;
+    }
+}
+
+#word-validation-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+#word-validation-modal .modal-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+#word-validation-modal .close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: color 0.2s;
+}
+
+#word-validation-modal .close-modal-btn:hover {
+    color: #374151;
+}
+
+#word-validation-modal .modal-body {
+    margin-bottom: 1.5rem;
+}
+
+#word-validation-modal .validation-message {
+    color: #374151;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    white-space: pre-line;
+    text-align: left;
+}
+
+#word-validation-modal .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+#word-validation-modal .modal-button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+}
+
+#word-validation-modal .modal-button.primary-button {
+    background-color: #4f46e5;
+    color: white;
+}
+
+#word-validation-modal .modal-button.primary-button:hover {
+    background-color: #4338ca;
+}
+
+#word-validation-modal .modal-button.secondary-button {
+    background-color: #6b7280;
+    color: white;
+}
+
+#word-validation-modal .modal-button.secondary-button:hover {
+    background-color: #4b5563;
+}
+
 
 /* Finish Game Modal Styles */
 #finish-game-modal {
