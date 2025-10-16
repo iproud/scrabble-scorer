@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Adjustment Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .test-case { margin: 15px 0; padding: 10px; border-left: 4px solid #007bff; }
+        .expected { background-color: #e7f3ff; }
+        .actual { background-color: #f8f9fa; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .positive { color: green; }
+        .negative { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Final Score Adjustment Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Final Adjustment Turn Generation</h2>
+        <button onclick="runFinalAdjustmentTest()">Run Final Adjustment Test</button>
+        <div id="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Generated Adjustment Turns</h2>
+        <div id="adjustment-turns"></div>
+    </div>
+
+    <script src="client/js/game-state.js"></script>
+    <script>
+        let testGameState;
+        
+        function initializeTestGameState() {
+            testGameState = new GameState();
+            testGameState.players = [
+                { id: 1, name: 'Alice', score: 95 },
+                { id: 2, name: 'Bob', score: 50 }
+            ];
+            
+            // Simulate some turn history
+            testGameState.turnHistory = [
+                {
+                    playerId: 1,
+                    round_number: 1,
+                    word: 'QUIZ',
+                    score: 44
+                },
+                {
+                    playerId: 2,
+                    round_number: 1,
+                    word: 'QUEEN',
+                    score: 16
+                },
+                {
+                    playerId: 1,
+                    round_number: 2,
+                    word: 'NEPTUNE',
+                    score: 24
+                },
+                {
+                    playerId: 2,
+                    round_number: 2,
+                    word: 'PIKE',
+                    score: 30
+                },
+                {
+                    playerId: 1,
+                    round_number: 3,
+                    word: 'KETTLE',
+                    score: 12
+                },
+                {
+                    playerId: 2,
+                    round_number: 3,
+                    word: 'NOTE',
+                    score: 4
+                },
+                {
+                    playerId: 1,
+                    round_number: 4,
+                    word: 'ZIP',
+                    score: 15
+                }
+            ];
+            
+            console.log('Test game state initialized with players:', testGameState.players);
+            console.log('Turn history:', testGameState.turnHistory);
+        }
+        
+        function runFinalAdjustmentTest() {
+            initializeTestGameState();
+            
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '<div class="result">Testing final adjustment turn generation...</div>';
+            
+            try {
+                // Simulate the example scenario
+                const endingPlayerId = 1; // Alice ended the game
+                const tileDistribution = {
+                    '2': ['A', 'E', 'I', 'S', 'R'] // Bob has these tiles remaining
+                };
+                
+                console.log('=== FINAL ADJUSTMENT TEST ===');
+                console.log('Ending Player ID:', endingPlayerId);
+                console.log('Tile Distribution:', tileDistribution);
+                
+                // Generate final adjustment turns
+                const adjustmentTurns = testGameState.generateFinalAdjustmentTurns(
+                    endingPlayerId,
+                    tileDistribution
+                );
+                
+                console.log('Generated adjustment turns:', adjustmentTurns);
+                
+                // Validate the results
+                const validation = validateAdjustmentTurns(adjustmentTurns, endingPlayerId, tileDistribution);
+                
+                if (validation.valid) {
+                    resultDiv.innerHTML += '<div class="result success">✅ FINAL ADJUSTMENT TEST PASSED</div>';
+                    resultDiv.innerHTML += `<div class="result success">Generated ${adjustmentTurns.length} adjustment turns</div>`;
+                    
+                    // Display the turns in a table
+                    displayAdjustmentTurns(adjustmentTurns);
+                } else {
+                    resultDiv.innerHTML += '<div class="result error">❌ FINAL ADJUSTMENT TEST FAILED</div>';
+                    validation.errors.forEach(error => {
+                        resultDiv.innerHTML += `<div class="result error">Error: ${error}</div>`;
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                resultDiv.innerHTML += `<div class="result error">❌ TEST ERROR: ${error.message}</div>`;
+            }
+        }
+        
+        function validateAdjustmentTurns(adjustmentTurns, endingPlayerId, tileDistribution) {
+            const errors = [];
+            
+            if (!adjustmentTurns || adjustmentTurns.length === 0) {
+                errors.push('No adjustment turns generated');
+                return { valid: false, errors };
+            }
+            
+            // Check that we have turns for both players
+            const endingPlayerTurn = adjustmentTurns.find(t => t.playerId === endingPlayerId);
+            const otherPlayerTurn = adjustmentTurns.find(t => t.playerId !== endingPlayerId);
+            
+            if (!endingPlayerTurn) {
+                errors.push('No adjustment turn generated for ending player');
+            }
+            
+            if (!otherPlayerTurn) {
+                errors.push('No adjustment turn generated for other player');
+            }
+            
+            // Check ending player gets positive bonus
+            if (endingPlayerTurn && endingPlayerTurn.score <= 0) {
+                errors.push(`Ending player should get positive bonus, got: ${endingPlayerTurn.score}`);
+            }
+            
+            // Check other player gets negative deduction
+            if (otherPlayerTurn && otherPlayerTurn.score >= 0) {
+                errors.push(`Other player should get negative deduction, got: ${otherPlayerTurn.score}`);
+            }
+            
+            // Check that the scores balance (sum should be 0)
+            const totalScore = adjustmentTurns.reduce((sum, turn) => sum + turn.score, 0);
+            if (totalScore !== 0) {
+                errors.push(`Adjustment scores should sum to 0, got: ${totalScore}`);
+            }
+            
+            // Check round numbering
+            const roundNumbers = adjustmentTurns.map(t => t.round_number);
+            if (roundNumbers.some(r => r !== roundNumbers[0])) {
+                errors.push('All adjustment turns should have the same round number');
+            }
+            
+            // Check final adjustment flags
+            adjustmentTurns.forEach((turn, index) => {
+                if (!turn.isFinalAdjustment) {
+                    errors.push(`Turn ${index + 1} is not marked as final adjustment`);
+                }
+                
+                if (turn.direction !== 'adjustment') {
+                    errors.push(`Turn ${index + 1} should have direction 'adjustment'`);
+                }
+                
+                if (turn.start_row !== -1 || turn.start_col !== -1) {
+                    errors.push(`Turn ${index + 1} should have special position indicators`);
+                }
+            });
+            
+            return {
+                valid: errors.length === 0,
+                errors
+            };
+        }
+        
+        function displayAdjustmentTurns(adjustmentTurns) {
+            const turnsDiv = document.getElementById('adjustment-turns');
+            
+            let html = '<table>';
+            html += '<tr><th>Player</th><th>Round</th><th>Word</th><th>Score</th><th>Type</th><th>Description</th></tr>';
+            
+            adjustmentTurns.forEach(turn => {
+                const player = testGameState.players.find(p => p.id === turn.playerId);
+                const scoreClass = turn.score > 0 ? 'positive' : 'negative';
+                const scoreDisplay = turn.score > 0 ? `+${turn.score}` : `${turn.score}`;
+                
+                html += '<tr>';
+                html += `<td>${player.name}</td>`;
+                html += `<td>⚖️ ${turn.round_number}</td>`;
+                html += `<td>${turn.word || '(empty)'}</td>`;
+                html += `<td class="${scoreClass}"><strong>${scoreDisplay}</strong></td>`;
+                html += `<td>${turn.adjustmentType}</td>`;
+                html += `<td>${turn.adjustmentDescription}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</table>';
+            
+            // Add summary
+            const totalScore = adjustmentTurns.reduce((sum, turn) => sum + turn.score, 0);
+            html += `<div class="result">Total adjustment score: <strong>${totalScore}</strong> (should be 0)</div>`;
+            
+            turnsDiv.innerHTML = html;
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initializeTestGameState();
+            console.log('Final Adjustment Test loaded. Click button to run test.');
+        });
+    </script>
+</body>
+</html>

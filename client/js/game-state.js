@@ -1553,13 +1553,161 @@ class GameState {
             finalScores[playerId] -= deduction;
         }
         
-        // Special case for 2-player games: ending player gets bonus, other player gets same amount deducted
+        // Special case for 2-player games: ending player gets bonus, other player gets deduction for their own tiles
+        // NO additional deduction for ending player's bonus - that's incorrect Scrabble logic
+        // The deduction for other players is already applied above based on their own remaining tiles
         if (players.length === 2) {
-            const otherPlayerId = players.find(p => p.id !== endingPlayerId).id;
-            finalScores[otherPlayerId] -= totalBonus;
+            console.log('=== FINAL SCORE CALCULATION DEBUG ===');
+            console.log('2-player game ending logic:');
+            console.log('Ending player ID:', endingPlayerId);
+            console.log('Tile distribution:', tileDistribution);
+            console.log('Total bonus for ending player:', totalBonus);
+            console.log('Final scores before 2-player logic:', finalScores);
+            console.log('=== END DEBUG ===');
         }
         
         return finalScores;
+    }
+
+    // Generate final adjustment turns for end-game scoring
+    generateFinalAdjustmentTurns(endingPlayerId, tileDistribution) {
+        const players = this.players;
+        const adjustmentTurns = [];
+        
+        // Calculate the final round number (one more than the current highest round)
+        const finalRoundNumber = this.turnHistory.length > 0 
+            ? Math.max(...this.turnHistory.map(t => t.round_number || 1)) + 1
+            : 1;
+        
+        // Calculate total bonus for ending player (sum of all remaining tiles from other players)
+        let totalBonus = 0;
+        for (const [playerId, tiles] of Object.entries(tileDistribution)) {
+            if (playerId === endingPlayerId) continue; // Skip ending player
+            
+            tiles.forEach(tile => {
+                if (tile === '') {
+                    // Blank tile has no points
+                    return;
+                }
+                totalBonus += this.letterScores[tile] || 0;
+            });
+        }
+        
+        // Create adjustment turn for ending player (positive bonus)
+        const endingPlayer = players.find(p => p.id === endingPlayerId);
+        if (endingPlayer) {
+            adjustmentTurns.push({
+                playerId: endingPlayerId,
+                round_number: finalRoundNumber,
+                word: totalBonus > 0 ? '' : '<EMPTY>', // Show empty if no bonus, otherwise leave empty
+                score: totalBonus,
+                secondary_words: [],
+                board_state_after: JSON.parse(JSON.stringify(this.boardState)),
+                start_row: -1, // Special position to indicate adjustment turn
+                start_col: -1,
+                direction: 'adjustment',
+                blank_tiles: []
+            });
+        }
+        
+        // Create adjustment turns for other players (negative deductions)
+        for (const [playerId, tiles] of Object.entries(tileDistribution)) {
+            if (playerId === endingPlayerId) continue; // Skip ending player
+            
+            const player = players.find(p => p.id === playerId);
+            if (!player) continue;
+            
+            // Calculate deduction for this player
+            let deduction = 0;
+            tiles.forEach(tile => {
+                if (tile === '') {
+                    // Blank tile has no points
+                    return;
+                }
+                deduction += this.letterScores[tile] || 0;
+            });
+            
+            // Create word from remaining tiles (filter out blanks)
+            const remainingTilesWord = tiles
+                .filter(tile => tile !== '')
+                .sort()
+                .join('');
+            
+            // Handle empty case
+            const word = remainingTilesWord || (deduction > 0 ? remainingTilesWord : '<EMPTY>');
+            
+            adjustmentTurns.push({
+                playerId: playerId,
+                round_number: finalRoundNumber,
+                word: word,
+                score: -deduction, // Negative score for deduction
+                secondary_words: [],
+                board_state_after: JSON.parse(JSON.stringify(this.boardState)),
+                start_row: -1,
+                start_col: -1,
+                direction: 'adjustment',
+                blank_tiles: []
+            });
+        }
+        
+        // Special case for 2-player games: ALWAYS create adjustment turn for other player
+        if (players.length === 2) {
+            const otherPlayerId = players.find(p => p.id !== endingPlayerId).id;
+            const hasAssignedTiles = tileDistribution[otherPlayerId] && tileDistribution[otherPlayerId].length > 0;
+            
+            // ALWAYS create an adjustment turn for the other player
+            let deduction = 0;
+            if (hasAssignedTiles) {
+                // Calculate deduction from assigned tiles
+                const tiles = tileDistribution[otherPlayerId];
+                tiles.forEach(tile => {
+                    if (tile === '') {
+                        // Blank tile has no points
+                        return;
+                    }
+                    deduction += this.letterScores[tile] || 0;
+                });
+                
+                // Create word from remaining tiles (filter out blanks)
+                const remainingTilesWord = tiles
+                    .filter(tile => tile !== '')
+                    .sort()
+                    .join('');
+                
+                // Create adjustment turn with calculated deduction
+                adjustmentTurns.push({
+                    playerId: otherPlayerId,
+                    round_number: finalRoundNumber,
+                    word: remainingTilesWord || '<EMPTY>',
+                    score: -deduction,
+                    secondary_words: [],
+                    board_state_after: JSON.parse(JSON.stringify(this.boardState)),
+                    start_row: -1,
+                    start_col: -1,
+                    direction: 'adjustment',
+                    blank_tiles: []
+                });
+            } else {
+                // No tiles assigned - deduction equals total bonus
+                if (totalBonus > 0) {
+                    // Create adjustment turn with deduction equal to bonus
+                    adjustmentTurns.push({
+                        playerId: otherPlayerId,
+                        round_number: finalRoundNumber,
+                        word: '<EMPTY>', // Use EMPTY for no tiles case
+                        score: -totalBonus, // Negative score equal to ending player's bonus
+                        secondary_words: [],
+                        board_state_after: JSON.parse(JSON.stringify(this.boardState)),
+                        start_row: -1,
+                        start_col: -1,
+                        direction: 'adjustment',
+                        blank_tiles: []
+                    });
+                }
+            }
+        }
+        
+        return adjustmentTurns;
     }
 }
 

@@ -152,6 +152,66 @@ function recalculateRoundNumbers(db) {
     console.log('Round number recalculation complete.');
 }
 
+function migrateDirectionConstraint(db) {
+    console.log('Migrating direction constraint to allow adjustment turns...');
+    
+    // Check if the constraint already allows 'adjustment'
+    const tableInfo = db.prepare(`
+        SELECT sql FROM sqlite_master 
+        WHERE type = 'table' AND name = 'turns'
+    `).get();
+    
+    if (tableInfo && tableInfo.sql && tableInfo.sql.includes("'adjustment'")) {
+        console.log('Direction constraint already includes adjustment - skipping migration');
+        return;
+    }
+    
+    // Create a backup of the turns table
+    db.exec(`
+        CREATE TABLE turns_backup AS SELECT * FROM turns;
+    `);
+    
+    // Drop the original table
+    db.exec('DROP TABLE turns');
+    
+    // Recreate the table with the updated constraint
+    db.exec(`
+        CREATE TABLE turns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            game_id INTEGER NOT NULL,
+            player_id INTEGER NOT NULL,
+            round_number INTEGER NOT NULL,
+            word TEXT NOT NULL,
+            score INTEGER NOT NULL,
+            secondary_words TEXT DEFAULT '[]',
+            board_state_after TEXT NOT NULL,
+            start_row INTEGER NOT NULL,
+            start_col INTEGER NOT NULL,
+            direction TEXT NOT NULL CHECK (direction IN ('across', 'down', 'adjustment')),
+            blank_tiles TEXT DEFAULT '[]',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+            FOREIGN KEY (player_id) REFERENCES players(id)
+        );
+    `);
+    
+    // Restore data from backup
+    db.exec(`
+        INSERT INTO turns 
+        SELECT * FROM turns_backup;
+    `);
+    
+    // Drop the backup table
+    db.exec('DROP TABLE turns_backup');
+    
+    // Recreate indexes
+    db.exec('CREATE INDEX IF NOT EXISTS idx_turns_game_id ON turns(game_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_turns_player_id ON turns(player_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_turns_round_number ON turns(game_id, round_number)');
+    
+    console.log('Direction constraint migration completed successfully.');
+}
+
 function performMigrations(db) {
     const hasPlayers = tableExists(db, 'players');
     const hasGamePlayers = tableExists(db, 'game_players');
@@ -177,6 +237,14 @@ function performMigrations(db) {
     // New migration step for recalculating round numbers
     if (hasTurns && hasGamePlayers && hasGames) { // Ensure all relevant tables exist
         recalculateRoundNumbers(db);
+    }
+    
+    // New migration step for updating direction constraint to allow adjustment turns
+    if (hasTurns) {
+        const migrateDirection = db.transaction(() => {
+            migrateDirectionConstraint(db);
+        });
+        migrateDirection();
     }
 }
 

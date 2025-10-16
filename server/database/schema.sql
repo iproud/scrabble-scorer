@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS turns (
     board_state_after TEXT NOT NULL,
     start_row INTEGER NOT NULL,
     start_col INTEGER NOT NULL,
-    direction TEXT NOT NULL CHECK (direction IN ('across', 'down')),
+    direction TEXT NOT NULL CHECK (direction IN ('across', 'down', 'adjustment')),
     blank_tiles TEXT DEFAULT '[]',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,

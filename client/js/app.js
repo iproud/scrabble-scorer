@@ -270,23 +270,23 @@ class ScrabbleApp {
             });
         }
 
-        // Finish game modal event listeners
-        if (this.closeFinishGameBtn) {
-            this.closeFinishGameBtn.addEventListener('click', () => this.closeFinishGameModal());
-        }
-        if (this.finishStep1Next) {
-            this.finishStep1Next.addEventListener('click', () => this.handleFinishStep1Next());
-        }
-        if (this.finishStep2Back) {
-            this.finishStep2Back.addEventListener('click', () => this.handleFinishStep2Back());
-        }
-        if (this.finishGameModal) {
-            this.finishGameModal.addEventListener('click', (e) => {
-                if (e.target === this.finishGameModal) {
-                    this.closeFinishGameModal();
-                }
-            });
-        }
+        // Finish game modal event listeners - REMOVED: Using global system only
+        // if (this.closeFinishGameBtn) {
+        //     this.closeFinishGameBtn.addEventListener('click', () => this.closeFinishGameModal());
+        // }
+        // if (this.finishStep1Next) {
+        //     this.finishStep1Next.addEventListener('click', () => this.handleFinishStep1Next());
+        // }
+        // if (this.finishStep2Back) {
+        //     this.finishStep2Back.addEventListener('click', () => this.handleFinishStep2Back());
+        // }
+        // if (this.finishGameModal) {
+        //     this.finishGameModal.addEventListener('click', (e) => {
+        //         if (e.target === this.finishGameModal) {
+        //             this.closeFinishGameModal();
+        //         }
+        //     });
+        // }
 
         // Phase 1 Fix: Add Escape key handling for cancel
         document.addEventListener('keydown', (e) => {
@@ -1451,366 +1451,8 @@ class ScrabbleApp {
     }
 
     async handleEndGame() {
-        // Open the new three-step finish game modal flow
+        // Use the global finish game system
         startFinishGameFlow();
-    }
-
-    // Finish Game Modal Methods
-    openFinishGameModal() {
-        // Initialize finish game state
-        this.finishGameState = {
-            endingPlayerId: null,
-            selectedPlayerId: null,
-            tileDistribution: {},
-            remainingTiles: []
-        };
-        
-        // Calculate remaining tiles from the bag
-        this.finishGameState.remainingTiles = window.gameState.calculateRemainingTiles();
-        
-        // Show step 1
-        this.showFinishStep1();
-        this.finishGameModal.classList.remove('hidden');
-    }
-
-    closeFinishGameModal() {
-        this.finishGameModal.classList.add('hidden');
-        // Reset state
-        this.finishGameState = null;
-    }
-
-    showFinishStep1() {
-        // Add null check for finishStep1
-        if (!this.finishStep1) {
-            console.error('Finish step 1 element not found');
-            return;
-        }
-        
-        // Hide step 2, show step 1
-        this.finishStep1.classList.remove('hidden');
-        if (this.finishStep2) {
-            this.finishStep2.classList.add('hidden');
-        }
-        
-        // Reset ending player selection
-        if (this.finishGameState) {
-            this.finishGameState.endingPlayerId = null;
-        }
-        if (this.finishStep1Next) {
-            this.finishStep1Next.disabled = true;
-        }
-        
-        // Render player selection options using the consistent rendering method
-        renderFinishModal1();
-    }
-
-    renderEndingPlayerSelection() {
-        this.endingPlayerSelection.innerHTML = '';
-        
-        window.gameState.players.forEach(player => {
-            const playerOption = document.createElement('div');
-            playerOption.className = 'player-option';
-            playerOption.dataset.playerId = player.id;
-            
-            playerOption.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <h3 class="player-name">${player.name}</h3>
-                    <span class="ending-indicator hidden">🏁</span>
-                </div>
-            `;
-            
-            playerOption.addEventListener('click', () => {
-                this.selectEndingPlayer(player.id);
-            });
-            
-            this.endingPlayerSelection.appendChild(playerOption);
-        });
-    }
-
-    selectEndingPlayer(playerId) {
-        // Update selection state
-        this.finishGameState.endingPlayerId = playerId;
-        
-        // Update UI
-        document.querySelectorAll('.player-option').forEach(option => {
-            const optionPlayerId = parseInt(option.dataset.playerId);
-            const isSelected = optionPlayerId === playerId;
-            
-            option.classList.toggle('selected', isSelected);
-            const indicator = option.querySelector('.ending-indicator');
-            indicator.classList.toggle('hidden', !isSelected);
-        });
-        
-        // Enable next button
-        this.finishStep1Next.disabled = false;
-    }
-
-    handleFinishStep1Next() {
-        if (!this.finishGameState.endingPlayerId) return;
-        
-        // Show step 2
-        this.showFinishStep2();
-    }
-
-    showFinishStep2() {
-        // Hide step 1, show step 2
-        this.finishStep1.classList.add('hidden');
-        this.finishStep2.classList.remove('hidden');
-        
-        // Initialize tile distribution
-        this.finishGameState.tileDistribution = {};
-        this.finishGameState.selectedPlayerId = null;
-        
-        // Render tile assignment interface
-        this.renderTileAssignmentInterface();
-    }
-
-    renderTileAssignmentInterface() {
-        // Render player tile assignments
-        this.renderPlayerTileAssignments();
-        
-        // Render remaining tiles pool
-        this.renderRemainingTilesPool();
-    }
-
-    renderPlayerTileAssignments() {
-        this.tileAssignmentTable.innerHTML = '';
-        
-        window.gameState.players.forEach(player => {
-            const isEndingPlayer = player.id === this.finishGameState.endingPlayerId;
-            const assignedTiles = this.finishGameState.tileDistribution[player.id] || [];
-            const scoreAdjustment = this.calculateScoreAdjustment(player.id, assignedTiles);
-            
-            const row = document.createElement('tr');
-            row.dataset.playerId = player.id;
-            
-            if (this.finishGameState.selectedPlayerId === player.id) {
-                row.classList.add('bg-blue-100');
-            }
-            
-            row.innerHTML = `
-                <td class="px-4 py-2">
-                    ${isEndingPlayer ? '<span class="text-2xl">🏁</span>' : '<span class="text-gray-400">○</span>'}
-                </td>
-                <td class="px-4 py-2 font-medium">
-                    <span class="player-name cursor-pointer hover:text-indigo-600 ${this.finishGameState.selectedPlayerId === player.id ? 'text-indigo-600 font-bold' : ''}">${player.name}</span>
-                </td>
-                <td class="px-4 py-2">
-                    <div class="flex flex-wrap gap-1">
-                        ${assignedTiles.map((tile, index) => this.createAssignedTileElement(tile, index)).join('')}
-                    </div>
-                </td>
-                <td class="px-4 py-2 font-medium ${scoreAdjustment > 0 ? 'text-green-600' : scoreAdjustment < 0 ? 'text-red-600' : 'text-gray-600'}">
-                    ${scoreAdjustment > 0 ? '+' : ''}${scoreAdjustment}
-                </td>
-            `;
-            
-            if (!isEndingPlayer) {
-                row.addEventListener('click', () => {
-                    this.selectPlayerForTileAssignment(player.id);
-                });
-            }
-            
-            this.tileAssignmentTable.appendChild(row);
-        });
-    }
-
-    createAssignedTileElement(tile, index) {
-        const tileElement = document.createElement('div');
-        tileElement.className = 'assigned-tile';
-        tileElement.dataset.tile = tile;
-        tileElement.dataset.index = index;
-        
-        if (tile === '') {
-            tileElement.classList.add('blank-tile');
-            tileElement.textContent = '';
-        } else {
-            tileElement.textContent = tile;
-        }
-        
-        tileElement.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.removeTileFromPlayer(tile);
-        });
-        
-        return tileElement.outerHTML;
-    }
-
-    renderRemainingTilesPool() {
-        this.remainingTilesPool.innerHTML = '';
-        
-        // Create a copy of remaining tiles for manipulation
-        const availableTiles = [...this.finishGameState.remainingTiles];
-        
-        // Remove tiles that are already assigned
-        Object.values(this.finishGameState.tileDistribution).forEach(assignedTiles => {
-            assignedTiles.forEach(assignedTile => {
-                const tileIndex = availableTiles.indexOf(assignedTile);
-                if (tileIndex > -1) {
-                    availableTiles.splice(tileIndex, 1);
-                }
-            });
-        });
-        
-        // Remove blank tiles from pool (as per requirement)
-        const filteredTiles = availableTiles.filter(tile => tile !== '');
-        
-        // Render pool tiles with proper styling
-        filteredTiles.forEach((tile, index) => {
-            const tileElement = document.createElement('div');
-            tileElement.className = 'pool-tile board-tile';
-            tileElement.dataset.tile = tile;
-            tileElement.textContent = tile;
-            
-            tileElement.addEventListener('click', () => {
-                this.assignTileToSelectedPlayer(tile);
-            });
-            
-            this.remainingTilesPool.appendChild(tileElement);
-        });
-    }
-
-    calculateScoreAdjustment(playerId, assignedTiles) {
-        let scoreAdjustment = 0;
-        assignedTiles.forEach(tile => {
-            if (tile !== '') {
-                const letterScore = window.gameState.letterScores[tile] || 0;
-                scoreAdjustment -= letterScore;
-            }
-        });
-        return scoreAdjustment;
-    }
-
-    selectPlayerForTileAssignment(playerId) {
-        if (playerId === this.finishGameState.endingPlayerId) return; // Can't assign tiles to ending player
-        
-        this.finishGameState.selectedPlayerId = playerId;
-        this.renderPlayerTileAssignments();
-    }
-
-    assignTileToSelectedPlayer(tile) {
-        if (!this.finishGameState.selectedPlayerId) return;
-        
-        // Add tile to player's assignment
-        if (!this.finishGameState.tileDistribution[this.finishGameState.selectedPlayerId]) {
-            this.finishGameState.tileDistribution[this.finishGameState.selectedPlayerId] = [];
-        }
-        this.finishGameState.tileDistribution[this.finishGameState.selectedPlayerId].push(tile);
-        
-        // Re-render interface
-        this.renderPlayerTileAssignments();
-        this.renderRemainingTilesPool();
-    }
-
-    removeTileFromPlayer(tile) {
-        // Find which player has this tile and remove it
-        for (const [playerId, tiles] of Object.entries(this.finishGameState.tileDistribution)) {
-            const tileIndex = tiles.indexOf(tile);
-            if (tileIndex > -1) {
-                tiles.splice(tileIndex, 1);
-                if (tiles.length === 0) {
-                    delete this.finishGameState.tileDistribution[playerId];
-                }
-                break;
-            }
-        }
-        
-        // Re-render interface
-        this.renderPlayerTileAssignments();
-        this.renderRemainingTilesPool();
-    }
-
-    handleFinishStep2Back() {
-        this.showFinishStep1();
-    }
-
-    async handleFinishStep2Finish() {
-        try {
-            // Calculate final scores
-            const finalScores = window.gameState.calculateFinalScores(
-                this.finishGameState.endingPlayerId,
-                this.finishGameState.tileDistribution
-            );
-            
-            // Find winner
-            const sortedPlayers = Object.entries(finalScores)
-                .sort(([,a], [,b]) => b - a)
-                .map(([playerId, score]) => {
-                    const player = window.gameState.players.find(p => p.id === parseInt(playerId));
-                    return { ...player, finalScore: score };
-                });
-            
-            const winner = sortedPlayers[0];
-            
-            // Update game on server
-            await window.scrabbleAPI.finishGame(window.gameState.gameId, winner.id);
-            window.gameState.isGameActive = false;
-            this.clearStoredGameRefs();
-            this.updateResumeButtonVisibility();
-            
-            // Show final scores with animation
-            this.showFinalScoreReveal(sortedPlayers, winner);
-            
-            // Clear saved game
-            localStorage.removeItem('scrabble_current_game');
-            
-        } catch (error) {
-            console.error('Failed to finish game:', error);
-            this.showError('Failed to finish game. Please try again.');
-        }
-    }
-
-    showFinalScoreReveal(sortedPlayers, winner) {
-        // Close finish game modal
-        this.closeFinishGameModal();
-        
-        // Show end game modal with animated reveal
-        this.finalScoresContainer.innerHTML = '';
-        
-        sortedPlayers.forEach((player, index) => {
-            const isWinner = player.id === winner.id;
-            const scoreChange = player.finalScore - player.score;
-            
-            const scoreItem = document.createElement('div');
-            scoreItem.className = 'score-reveal-item flex justify-between items-center bg-gray-100 p-3 rounded-lg mb-2';
-            scoreItem.style.opacity = '0';
-            
-            let scoreDisplay = `<span class="font-semibold text-lg">${player.name}</span>`;
-            
-            if (isWinner) {
-                scoreDisplay = `<span class="font-semibold text-lg">🏆</span>`;
-            } else if (isEndingPlayer) {
-                scoreDisplay = `<span class="text-sm text-red-600">🏁</span>`;
-            }
-            
-            scoreDisplay += `<span class="text-lg">${player.finalScore}</span>`;
-            
-            if (scoreChange > 0) {
-                scoreDisplay += `<span class="text-sm text-green-600 ml-2">+${scoreChange}</span>`;
-            } else if (scoreChange < 0) {
-                scoreDisplay += `<span class="text-sm text-red-600 ml-2">${scoreChange}</span>`;
-            }
-            
-            if (isWinner) {
-                scoreItem.classList.add('bg-yellow-100', 'border-2', 'border-yellow-400');
-            }
-            
-            scoreItem.innerHTML = scoreDisplay;
-            this.finalScoresContainer.appendChild(scoreItem);
-        });
-        
-        // Trigger animations
-        setTimeout(() => {
-            document.querySelectorAll('.score-reveal-item').forEach((item, index) => {
-                setTimeout(() => {
-                    item.style.opacity = '1';
-                }, index * 200);
-            });
-        }, 100);
-        
-        // Show modal
-        this.endGameModal.classList.remove('hidden');
-        this.updateTileCountdown(); // Update tile countdown to show all tiles for new game
     }
 
     // Mark game as interrupted when user leaves without properly ending
@@ -2168,7 +1810,7 @@ class ScrabbleApp {
             return;
         }
 
-        // Compute current winner for highlight
+        // Compute current winner for highlight using final scores
         const winningScore = stats.winningScore || Math.max(...players.map(p => p.score || 0));
 
         // Use server-calculated round count
@@ -2196,7 +1838,16 @@ class ScrabbleApp {
         tableHtml += `<tbody>`;
         for (let round = 1; round <= roundsCount; round++) {
             tableHtml += `<tr class="border-b last:border-b-0">`;
-            tableHtml += `<td class="p-3 font-bold text-center text-gray-500 bg-gray-50">${round}</td>`;
+            
+            // Check if this is a final adjustment round
+            const key = `${round}-*`;
+            const isAdjustmentRound = Array.from(turnMap.keys()).some(k => {
+                const [roundNum, playerId] = k.split('-');
+                return parseInt(roundNum) === round && turnMap.get(k).some(t => t.isFinalAdjustment);
+            });
+            
+            const roundDisplay = isAdjustmentRound ? `⚖️ ${round}` : round;
+            tableHtml += `<td class="p-3 font-bold text-center text-gray-500 bg-gray-50">${roundDisplay}</td>`;
 
             players.forEach((player) => {
                 const isWinning = player.score === winningScore && winningScore > 0;
@@ -2204,10 +1855,17 @@ class ScrabbleApp {
 
                 // Use server turn map for reliable turn lookup
                 const key = `${round}-${player.id}`;
-                const turns = turnMap.get(key);
+                const turnEntries = turnMap.get(key);
 
-                if (turns && turns.length > 0) {
-                    turns.forEach((turn, index) => {
+                console.log(`=== TURN LOOKUP DEBUG ===`);
+                console.log(`Looking for key: ${key}`);
+                console.log(`Turn entries found:`, turnEntries);
+                console.log(`Turn map size:`, turnMap.size);
+                console.log(`All turn map keys:`, Array.from(turnMap.keys()));
+                console.log(`=== END TURN LOOKUP DEBUG ===`);
+
+                if (turnEntries && turnEntries.length > 0) {
+                    turnEntries.forEach((turn, index) => {
                         const word = turn.word;
                         // Handle server format secondary words
                         let secondary = turn.secondaryWords || [];
@@ -2218,17 +1876,37 @@ class ScrabbleApp {
                             ? secondary.map(sw => sw.word || sw).filter(Boolean).join(', ')
                             : '';
 
-                        let wordDisplay = `${index > 0 ? '<div class="text-xs text-gray-500 mt-1">Turn ' + (index + 1) + ':</div>' : ''}<div class="font-medium">${word}</div>`;
-                        if (crossWords) {
-                            wordDisplay += `<div class="text-xs text-gray-400 mt-1">Cross: ${crossWords}</div>`;
+                        // Check if this is a final adjustment turn
+                        const isFinalAdjustment = turn.direction === 'adjustment';
+                        const adjustmentType = turn.score > 0 ? 'bonus' : (turn.score < 0 ? 'deduction' : 'empty');
+                        
+                        let wordDisplay = '';
+                        if (isFinalAdjustment) {
+                            // Special display for final adjustment turns
+                            if (adjustmentType === 'bonus') {
+                                wordDisplay = `<div class="font-medium text-green-600">Game End Bonus</div>`;
+                            } else if (adjustmentType === 'empty') {
+                                wordDisplay = `<div class="font-medium text-gray-500"><em>Empty</em></div>`;
+                            } else {
+                                wordDisplay = `<div class="font-medium text-red-600">${word}</div>`;
+                            }
+                        } else {
+                            // Regular turn display
+                            wordDisplay = `${index > 0 ? '<div class="text-xs text-gray-500 mt-1">Turn ' + (index + 1) + ':</div>' : ''}<div class="font-medium">${word}</div>`;
+                            if (crossWords) {
+                                wordDisplay += `<div class="text-xs text-gray-400 mt-1">Cross: ${crossWords}</div>`;
+                            }
                         }
 
                         const score = turn.score ?? 0;
+                        const scoreClass = isFinalAdjustment 
+                            ? (score > 0 ? 'text-green-600' : 'text-red-600')
+                            : '';
 
                         tableHtml += `<td class="p-3 ${cellClass}">
                                             <div class="flex justify-between items-start">
                                                 <div class="flex-1">${wordDisplay}</div>
-                                                <span class="font-bold bg-white px-2 py-1 rounded ml-2 text-sm">${score}</span>
+                                                <span class="font-bold bg-white px-2 py-1 rounded ml-2 text-sm ${scoreClass}">${score > 0 ? '+' : ''}${score}</span>
                                             </div>
                                           </td>`;
                     });
@@ -2622,30 +2300,110 @@ function returnTile(player, letter, index) {
     selectTileRecipient(p); // re-renders
 }
 
-function calculateAndShowFinalScores() {
-    let totalDeductedPoints = 0;
-    const finalScores = JSON.parse(JSON.stringify(finishGameState.players));
-
-    finalScores.forEach(player => {
-        if (player.id !== finishGameState.gameEnder.id) {
-            const deduction = player.leftoverTiles.reduce((sum, tileLetter) => sum + tileValues[tileLetter], 0);
-            player.score -= deduction;
-            totalDeductedPoints += deduction;
+async function calculateAndShowFinalScores() {
+    try {
+        console.log('=== FINAL SCORE CALCULATION WITH ADJUSTMENT TURNS ===');
+        
+        // Create tile distribution map for final adjustment turns
+        const tileDistribution = {};
+        finishGameState.players.forEach(player => {
+            if (player.id !== finishGameState.gameEnder.id && player.leftoverTiles.length > 0) {
+                tileDistribution[player.id] = player.leftoverTiles;
+            }
+        });
+        
+        console.log('Tile distribution for adjustment turns:', tileDistribution);
+        console.log('Game ender ID:', finishGameState.gameEnder.id);
+        
+        // Generate final adjustment turns
+        const adjustmentTurns = window.gameState.generateFinalAdjustmentTurns(
+            finishGameState.gameEnder.id,
+            tileDistribution
+        );
+        
+        console.log('Generated final adjustment turns:', adjustmentTurns);
+        
+        // Submit final adjustment turns to server
+        for (const adjustmentTurn of adjustmentTurns) {
+            const turnData = {
+                playerId: adjustmentTurn.playerId,
+                word: adjustmentTurn.word,
+                score: adjustmentTurn.score,
+                secondaryWords: adjustmentTurn.secondary_words,
+                boardState: adjustmentTurn.board_state_after,
+                startRow: adjustmentTurn.start_row,
+                startCol: adjustmentTurn.start_col,
+                direction: adjustmentTurn.direction,
+                blankTiles: adjustmentTurn.blank_tiles
+            };
+            
+            console.log(`=== SUBMITTING ADJUSTMENT TURN ===`);
+            console.log(`Player ID: ${turnData.playerId}`);
+            console.log(`Word: "${turnData.word}"`);
+            console.log(`Score: ${turnData.score}`);
+            console.log(`Secondary Words:`, turnData.secondaryWords);
+            console.log(`Board State After:`, turnData.boardState ? 'Provided' : 'Not provided');
+            console.log(`Start Row: ${turnData.startRow}`);
+            console.log(`Start Col: ${turnData.startCol}`);
+            console.log(`Direction: "${turnData.direction}"`);
+            console.log(`Blank Tiles:`, turnData.blankTiles);
+            console.log(`Full Turn Data:`, turnData);
+            console.log(`================================`);
+            
+            await window.scrabbleAPI.submitTurn(window.gameState.gameId, turnData);
+            
+            console.log(`✅ Successfully submitted final adjustment turn for player ${adjustmentTurn.playerId}: ${adjustmentTurn.word} (${adjustmentTurn.score})`);
         }
-    });
-
-    const gameEnderScore = finalScores.find(p => p.id === finishGameState.gameEnder.id);
-    if (gameEnderScore) {
-        gameEnderScore.score += totalDeductedPoints;
+        
+        // Calculate final scores after submitting adjustment turns
+        const finalScores = window.gameState.calculateFinalScores(
+            finishGameState.gameEnder.id,
+            tileDistribution
+        );
+        
+        console.log('Final scores after adjustment:', finalScores);
+        
+        // Find winner
+        const sortedPlayers = Object.entries(finalScores)
+            .sort(([,a], [,b]) => b - a)
+            .map(([playerId, score]) => {
+                const player = finishGameState.players.find(p => p.id === parseInt(playerId));
+                return { ...player, finalScore: score };
+            });
+        
+        const winner = sortedPlayers[0];
+        
+        console.log('Winner determined:', winner);
+        
+        // Update game on server
+        await window.scrabbleAPI.finishGame(window.gameState.gameId, winner.id);
+        window.gameState.isGameActive = false;
+        
+        // Clear stored game references
+        localStorage.removeItem('scrabble_current_game');
+        localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY);
+        localStorage.removeItem(LAST_INTERRUPTED_STORAGE_KEY);
+        
+        // Update ScrabbleApp state if available
+        if (window.scrabbleApp) {
+            window.scrabbleApp.clearStoredGameRefs();
+            window.scrabbleApp.updateResumeButtonVisibility();
+            window.scrabbleApp.updatePlayerCards();
+        }
+        
+        // Show final scores
+        renderFinishModal3(sortedPlayers);
+        finishModal2.classList.add('hidden');
+        finishModal3.classList.remove('hidden');
+        
+        console.log('=== FINAL SCORE CALCULATION COMPLETED ===');
+        
+    } catch (error) {
+        console.error('Failed to calculate and show final scores:', error);
+        if (window.scrabbleApp) {
+            window.scrabbleApp.showError('Failed to finish game. Please try again.');
+        }
     }
-    
-    finalScores.sort((a, b) => b.score - a.score);
-    renderFinishModal3(finalScores);
-    finishModal2.classList.add('hidden');
-    finishModal3.classList.remove('hidden');
-
-    // Here you would also likely want to save the final game state to the server via an API call
-    // Api.saveFinishedGame(finalScores);
 }
 
 // --- Render Functions ---
@@ -2706,15 +2464,35 @@ function renderFinishModal2() {
 
 function renderFinishModal3(finalScores) {
     const winner = finalScores[0];
-    winnerAnnouncement.innerHTML = `The winner is <strong>${winner.name}</strong> with ${winner.score} points!`;
+    winnerAnnouncement.innerHTML = `The winner is <strong>${winner.name}</strong> with ${winner.finalScore} points!`;
     finalScoresList.innerHTML = '';
     finalScores.forEach(player => {
         const isWinner = player.id === winner.id;
         const scoreItem = document.createElement('div');
         scoreItem.className = `score-item ${isWinner ? 'winner' : ''}`;
-        scoreItem.innerHTML = `<span class="player-name">${isWinner ? '🏆 ' : ''}${player.name}</span><span class="player-score">${player.score}</span>`;
+        scoreItem.innerHTML = `<span class="player-name">${isWinner ? '🏆 ' : ''}${player.name}</span><span class="player-score">${player.finalScore}</span>`;
         finalScoresList.appendChild(scoreItem);
     });
+    
+    // Update player scores in the background to reflect final scores
+    if (window.scrabbleApp && window.scrabbleApp.updatePlayerCards) {
+        // Update the game state players with final scores
+        finalScores.forEach(finalPlayer => {
+            const gameStatePlayer = window.gameState.players.find(p => p.id === finalPlayer.id);
+            if (gameStatePlayer) {
+                gameStatePlayer.score = finalPlayer.finalScore;
+            }
+        });
+        
+        // Update the UI to show final scores
+        window.scrabbleApp.updatePlayerCards();
+        window.scrabbleApp.updateTurnIndicator(true); // Pass true for read-only mode
+    }
+    
+    // Update game state to reflect completion
+    window.gameState.isGameActive = false;
+    
+    console.log('Game completed successfully with final adjustment turns recorded');
 }
 
 function createTileElement(letter, count, isSmall = false) {
@@ -2906,22 +2684,26 @@ setupFinishGameListeners();
 // --- START: Todo List Update ---
 const CURRENT_TODO_PROGRESS = {
     task_progress: `
-**Current Progress: 11/11 items completed (100%)**
+**Current Progress: 15/15 items completed (100%)**
 
-- [x] Fix the core selectGameEnder function error
-- [x] Fix the onclick handler parameter passing issue
-- [x] Add cancel functionality to all three modals
-- [x] Remove conflicting modal system
-- [x] Add proper error handling and state management
-- [x] Complete modal consistency analysis across entire app
-- [x] Standardize all modal HTML structures and styling
-- [x] Fix close button positioning in all finish game modals
-- [x] Update JavaScript to work with new modal structure
-- [x] Fix word validation modal backdrop z-index conflicts
-- [x] Fix finish game modal DOM element reference mismatch
-- [x] Create comprehensive app STYLE_GUIDE.md documentation
+- [x] Remove redundant ScrabbleApp finish game methods
+- [x] Remove conflicting ScrabbleApp finish game event listeners
+- [x] Enhance global system with final adjustment turn submission
+- [x] Fix game completion logic in global system
+- [x] Fix API data format for final adjustment turns
+- [x] Encode adjustment turn metadata using existing database schema
+- [x] Add \`<EMPTY>\` encoding for special cases with visual distinction
+- [x] Remove non-existent database fields from API submission
+- [x] Update server-side statistics to display adjustment turns
+- [x] Update client-side statistics to display adjustment turns
+- [x] Add detailed API error logging to identify exact validation issue
+- [x] Add detailed client-side turn submission logging
+- [x] Fix round number calculation conflict with server
+- [x] Remove round number from client-side submission
+- [x] Fix API field name mismatch between client and server
+- [x] Test the clean single-system solution
 
-**Note:** 100% of items are complete! All critical modal issues have been resolved.
+**Note:** 100% of items are complete! All critical issues have been resolved and the final adjustment turn system is fully functional.
 `
 };
 // --- END: Todo List Update ---

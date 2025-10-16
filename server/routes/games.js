@@ -195,22 +195,108 @@ router.post('/', (req, res) => {
 router.post('/:id/turns', (req, res) => {
     try {
         const gameId = parseInt(req.params.id);
-        const { 
-            playerId, 
-            word, 
-            score, 
-            secondaryWords = [], 
-            boardState, 
-            startRow, 
-            startCol, 
-            direction, 
-            blankTiles = [] 
-        } = req.body;
         
-        if (!playerId || !word || score === undefined || !boardState || 
+        // Debug: Log received data to identify field name issues
+        console.log('=== SERVER TURN SUBMISSION DEBUG ===');
+        console.log('Received request body:', JSON.stringify(req.body, null, 2));
+        console.log('================================');
+
+        // Extract required fields without default values to properly validate presence
+        const { playerId, word, score, boardState, startRow, startCol, direction } = req.body;
+        
+        // Extract optional fields (arrays) - these can be undefined or arrays
+        const { secondaryWords, blankTiles } = req.body;
+        
+        // Determine if this is an adjustment turn
+        const isAdjustmentTurn = direction === 'adjustment';
+        
+        console.log('Field validation:');
+        console.log('playerId:', playerId, typeof playerId);
+        console.log('word:', word, typeof word);
+        console.log('score:', score, typeof score);
+        console.log('boardState:', boardState, typeof boardState);
+        console.log('startRow:', startRow, typeof startRow);
+        console.log('startCol:', startCol, typeof startCol);
+        console.log('direction:', direction, typeof direction);
+        console.log('secondaryWords:', secondaryWords, typeof secondaryWords);
+        console.log('blankTiles:', blankTiles, typeof blankTiles);
+        console.log('isAdjustmentTurn:', isAdjustmentTurn, typeof isAdjustmentTurn);
+        console.log('================================');
+
+        // Basic validation for required fields
+        if (!playerId || score === undefined || !boardState || 
             startRow === undefined || startCol === undefined || !direction) {
+            console.error('VALIDATION ERROR: Missing required field');
             return res.status(400).json({ error: 'Missing required turn data' });
         }
+        
+        // Word validation - adjustment turns can have empty words
+        if (!isAdjustmentTurn && (!word || typeof word !== 'string' || word.trim().length === 0)) {
+            console.error('VALIDATION ERROR: Regular turn requires valid word');
+            return res.status(400).json({ error: 'Turn requires valid word' });
+        }
+        
+        // Special validation for adjustment turns
+        if (isAdjustmentTurn) {
+            console.log('Adjustment turn detected - applying special validation');
+            
+            // Adjustment turns can have startRow/startCol of -1, but must be valid numbers
+            if (!Number.isInteger(startRow) || !Number.isInteger(startCol)) {
+                console.error('VALIDATION ERROR: Adjustment turn requires integer startRow/startCol');
+                return res.status(400).json({ error: 'Adjustment turn requires integer startRow/startCol' });
+            }
+            
+            // Adjustment turns can have empty secondaryWords and blankTiles, but they must be arrays if provided
+            if (secondaryWords !== undefined && !Array.isArray(secondaryWords)) {
+                console.error('VALIDATION ERROR: Adjustment turn secondaryWords must be an array');
+                return res.status(400).json({ error: 'Adjustment turn secondaryWords must be an array' });
+            }
+            
+            if (blankTiles !== undefined && !Array.isArray(blankTiles)) {
+                console.error('VALIDATION ERROR: Adjustment turn blankTiles must be an array');
+                return res.status(400).json({ error: 'Adjustment turn blankTiles must be an array' });
+            }
+            
+            console.log('Adjustment turn validation passed');
+        } else {
+            // Regular turn validation
+            if (!Number.isInteger(startRow) || !Number.isInteger(startCol)) {
+                console.error('VALIDATION ERROR: Regular turn requires integer startRow/startCol');
+                return res.status(400).json({ error: 'Turn requires integer startRow/startCol' });
+            }
+            
+            if (startRow < 0 || startRow > 14 || startCol < 0 || startCol > 14) {
+                console.error('VALIDATION ERROR: Turn position out of bounds');
+                return res.status(400).json({ error: 'Turn position out of bounds' });
+            }
+            
+            // Regular turns should have valid word
+            if (!word || typeof word !== 'string' || word.trim().length === 0) {
+                console.error('VALIDATION ERROR: Regular turn requires valid word');
+                return res.status(400).json({ error: 'Turn requires valid word' });
+            }
+            
+            if (secondaryWords !== undefined && !Array.isArray(secondaryWords)) {
+                console.error('VALIDATION ERROR: Turn secondaryWords must be an array');
+                return res.status(400).json({ error: 'Turn secondaryWords must be an array' });
+            }
+            
+            if (blankTiles !== undefined && !Array.isArray(blankTiles)) {
+                console.error('VALIDATION ERROR: Turn blankTiles must be an array');
+                return res.status(400).json({ error: 'Turn blankTiles must be an array' });
+            }
+            
+            console.log('Regular turn validation passed');
+        }
+        
+        // Ensure boardState is a valid 15x15 array
+        if (!Array.isArray(boardState) || boardState.length !== 15 || 
+            boardState.some(row => !Array.isArray(row) || row.length !== 15)) {
+            console.error('VALIDATION ERROR: Invalid boardState format');
+            return res.status(400).json({ error: 'Invalid boardState format' });
+        }
+        
+        console.log('All validation checks passed - proceeding with turn submission');
         
         const db = getDatabase();
 
@@ -227,14 +313,24 @@ router.post('/:id/turns', (req, res) => {
             const totalTurnsResult = db.prepare('SELECT COUNT(*) as count FROM turns WHERE game_id = ?').get(gameId);
             const totalTurnsSubmitted = totalTurnsResult ? totalTurnsResult.count : 0;
 
-            // Calculate the current round number
-            // A round completes when all players have taken their turn.
-            // For example, if 2 players:
-            // 0 turns -> round 1
-            // 1 turn -> round 1
-            // 2 turns -> round 2
-            // 3 turns -> round 2
-            const roundNumber = Math.floor(totalTurnsSubmitted / numPlayers) + 1;
+            let roundNumber;
+            if (isAdjustmentTurn) {
+                // For adjustment turns, find the highest existing round and add 1
+                const highestRoundResult = db.prepare(`
+                    SELECT MAX(round_number) as highest_round FROM turns WHERE game_id = ?
+                `).get(gameId);
+                const highestRound = highestRoundResult ? highestRoundResult.highest_round : 0;
+                roundNumber = highestRound + 1;
+            } else {
+                // Regular turn logic
+                // A round completes when all players have taken their turn.
+                // For example, if 2 players:
+                // 0 turns -> round 1
+                // 1 turn -> round 1
+                // 2 turns -> round 2
+                // 3 turns -> round 2
+                roundNumber = Math.floor(totalTurnsSubmitted / numPlayers) + 1;
+            }
 
             // Insert turn
             const insertTurn = db.prepare(`
@@ -245,11 +341,20 @@ router.post('/:id/turns', (req, res) => {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
-            insertTurn.run(
+            const insertResult = insertTurn.run(
                 gameId, playerId, roundNumber, word, score,
                 JSON.stringify(secondaryWords), JSON.stringify(boardState),
                 startRow, startCol, direction, JSON.stringify(blankTiles)
             );
+            
+            console.log('=== TURN INSERTED DEBUG ===');
+            console.log('Turn ID:', insertResult.lastInsertRowid);
+            console.log('Player ID:', playerId);
+            console.log('Round Number:', roundNumber);
+            console.log('Word:', word);
+            console.log('Score:', score);
+            console.log('Direction:', direction);
+            console.log('=== END TURN INSERTED DEBUG ===');
             
             // Update player score
             const updateScore = db.prepare('UPDATE game_players SET score = score + ? WHERE game_id = ? AND player_id = ?');

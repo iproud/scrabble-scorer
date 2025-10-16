@@ -32,8 +32,25 @@ class ScrabbleAPI {
             const response = await fetch(url, config);
             
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                let errorData = {};
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    // If JSON parsing fails, try to get text
+                    const errorText = await response.text();
+                    errorData = { error: errorText, status: response.status, statusText: response.statusText };
+                }
+                
+                const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+                console.error(`API Error (${endpoint}):`, errorMessage);
+                console.error(`API Error Details (${endpoint}):`, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    url: url,
+                    config: config,
+                    errorData: errorData
+                });
+                throw new Error(errorMessage);
             }
             
             return await response.json();
