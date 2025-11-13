@@ -557,7 +557,7 @@ router.get('/:id/statistics', (req, res) => {
         // Calculate statistics
         const totalTurns = processedTurns.length;
         const playersCount = players.length;
-        const currentRound = totalTurns > 0 ? Math.floor((totalTurns - 1) / playersCount) + 1 : 1;
+        const currentRound = Math.floor(totalTurns / playersCount) + 1;
         
         // Find highest scoring turn
         let highestScoringTurn = null;
