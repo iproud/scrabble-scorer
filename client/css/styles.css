@@ -209,6 +209,12 @@ body {
     cursor: pointer;
 }
 
+.tile-extension {
+    background-color: var(--default-tile);
+    border-color: var(--tile-border);
+    color: #6b7280; /* Gray color for extension tiles to distinguish from user's new tiles */
+}
+
 .tile-conflict {
     background-color: var(--conflict-tile);
     border-color: var(--tile-border);

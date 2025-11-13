@@ -1004,6 +1004,9 @@ class ScrabbleApp {
             breakdown.error = 'Error validating word formation';
         }
         
+        // Store breakdown for use in updateTileDisplay
+        window.gameState.lastBreakdown = breakdown;
+        
         // Update UI components in a deterministic order
         this.updateScoreDisplay(finalScore);
         this.renderScoreBreakdown(breakdown);
@@ -1121,8 +1124,49 @@ class ScrabbleApp {
 
     updateTileDisplay(tileConflicts = null) {
         this.tileDisplayContainer.innerHTML = '';
-        const word = this.currentWord;
-        if (window.gameState.selectedCell.row === null || !word) return;
+        
+        // Get the complete word from scoring breakdown if available
+        let displayWord = this.currentWord;
+        
+        // NEW: Check if we can extend the word by connecting to an existing tile
+        let extensionLetter = null;
+        let extensionPosition = -1;
+        
+        if (window.gameState && window.gameState.selectedCell.row !== null && 
+            window.gameState.wordDirection && this.currentWord && this.currentWord.length > 0) {
+            
+            // Calculate position immediately after the last letter of the user's input
+            const afterRow = window.gameState.wordDirection === 'across' ? 
+                window.gameState.selectedCell.row : window.gameState.selectedCell.row + this.currentWord.length;
+            const afterCol = window.gameState.wordDirection === 'across' ? 
+                window.gameState.selectedCell.col + this.currentWord.length : window.gameState.selectedCell.col;
+            
+            // Check if there's an existing tile at that extension position
+            if (afterRow < 15 && afterCol < 15) {
+                const existingTile = window.gameState.boardState[afterRow][afterCol];
+                if (existingTile) {
+                    // We can extend the word! Get the existing tile letter
+                    extensionLetter = existingTile.letter;
+                    extensionPosition = this.currentWord.length; // Position where extension occurs
+                }
+            }
+        }
+        
+        // Determine the final word to display (user input + any extension)
+        if (extensionLetter !== null && extensionPosition === this.currentWord.length) {
+            // Extend the display word to include the connected existing tile
+            displayWord = this.currentWord + extensionLetter;
+            console.log('updateTileDisplay: Word extension detected - showing extended word:', displayWord, 'instead of user input:', this.currentWord, 'extension:', extensionLetter, 'at position:', extensionPosition);
+        }
+        
+        // Use the scoring breakdown word if available, otherwise use the display word (user input + extension)
+        let finalWord = displayWord;
+        if (window.gameState && window.gameState.lastBreakdown && window.gameState.lastBreakdown.mainWord && window.gameState.lastBreakdown.mainWord.word) {
+            finalWord = window.gameState.lastBreakdown.mainWord.word;
+            console.log('updateTileDisplay: Using complete word from last breakdown:', finalWord, 'instead of calculated display word:', displayWord);
+        }
+        
+        if (window.gameState.selectedCell.row === null || !finalWord) return;
 
         // Create a map of conflicting tiles for quick lookup
         const conflictMap = new Map();
@@ -1132,9 +1176,9 @@ class ScrabbleApp {
             });
         }
 
-        // Display tiles based on the current word input
-        for (let i = 0; i < word.length; i++) {
-            const letter = word[i];
+        // Display tiles based on the final word (including any extension)
+        for (let i = 0; i < finalWord.length; i++) {
+            const letter = finalWord[i];
             const row = window.gameState.wordDirection === 'across' ? 
                 window.gameState.selectedCell.row : window.gameState.selectedCell.row + i;
             const col = window.gameState.wordDirection === 'across' ? 
@@ -1150,6 +1194,9 @@ class ScrabbleApp {
             let score = window.gameState.letterScores[letter] || 0;
             let isBlank = window.gameState.blankTileIndices.has(i);
             
+            // Determine if this tile is part of the extension
+            const isExtensionTile = (i >= this.currentWord.length && extensionLetter !== null);
+            
             // Create letter span
             const letterSpan = document.createElement('span');
             letterSpan.className = 'tile-letter';
@@ -1160,11 +1207,20 @@ class ScrabbleApp {
             if (existingTile) {
                 // There's an existing tile at this position
                 if (existingTile.letter === letter) {
-                    // This is an existing tile that matches the typed letter
-                    tile.classList.add('tile-existing'); // Green for existing tiles
-                    letterSpan.textContent = existingTile.letter;
-                    score = existingTile.isBlank ? 0 : (window.gameState.letterScores[existingTile.letter] || 0);
-                    isBlank = existingTile.isBlank;
+                    // This is an existing tile that matches the expected letter
+                    if (isExtensionTile) {
+                        // This is the extension tile - style it as existing (gray)
+                        tile.classList.add('tile-extension'); // New class for extension tiles
+                        letterSpan.textContent = existingTile.letter;
+                        score = window.gameState.letterScores[existingTile.letter] || 0; // Show actual score for extension tiles
+                        isBlank = existingTile.isBlank;
+                    } else {
+                        // This is a regular existing tile from the user's input
+                        tile.classList.add('tile-existing'); // Green for existing tiles
+                        letterSpan.textContent = existingTile.letter;
+                        score = existingTile.isBlank ? 0 : (window.gameState.letterScores[existingTile.letter] || 0);
+                        isBlank = existingTile.isBlank;
+                    }
                 } else {
                     // CONFLICT: Existing tile has different letter
                     tile.classList.add('tile-conflict');
@@ -1186,20 +1242,20 @@ class ScrabbleApp {
                 
                 letterSpan.textContent = isBlank ? 'BLANK' : letter;
                 
-                // Add click handler for blank tiles
-                if (isBlank) {
+                // Add click handler for blank tiles (only for non-extension tiles)
+                if (isBlank && !isExtensionTile) {
                     tile.classList.add('tile-blank');
                     score = 0;
+                    
+                    tile.addEventListener('click', () => {
+                        if (window.gameState.blankTileIndices.has(i)) {
+                            window.gameState.blankTileIndices.delete(i);
+                        } else {
+                            window.gameState.blankTileIndices.add(i);
+                        }
+                        this.updateTurnState();
+                    });
                 }
-                
-                tile.addEventListener('click', () => {
-                    if (window.gameState.blankTileIndices.has(i)) {
-                        window.gameState.blankTileIndices.delete(i);
-                    } else {
-                        window.gameState.blankTileIndices.add(i);
-                    }
-                    this.updateTurnState();
-                });
             }
 
             // Create score span
@@ -1350,7 +1406,7 @@ class ScrabbleApp {
         // Prepare turn data
         const turnData = {
             playerId: window.gameState.getCurrentPlayer().id,
-            word: this.currentWord,
+            word: breakdown.mainWord.word,  // Use complete word from breakdown
             score: finalScore,
             secondaryWords: breakdown.secondaryWords,
             boardState: JSON.parse(JSON.stringify(window.gameState.boardState)), // This is the board state *before* the new turn is applied

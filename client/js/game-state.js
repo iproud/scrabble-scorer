@@ -675,7 +675,9 @@ class GameState {
             return null;
         }
 
-        // Create a temporary board state that includes the new placements
+        // Create a temporary board state that includes the new placements.
+        // This ensures that when we scan for the full word, both the newly
+        // placed tiles and any existing tiles on the board are considered.
         const tempBoard = this.createSafeBoardCopy();
         
         // Phase 1 Fix: Add validation for new placements
@@ -685,10 +687,14 @@ class GameState {
                 continue;
             }
             
-            tempBoard[placement.row][placement.col] = {
-                letter: placement.letter,
-                isBlank: placement.isBlank
-            };
+            // Only add a tile to the temporary board if it's a new placement.
+            // Existing tiles are already part of the copied board state.
+            if (placement.isNew) {
+                tempBoard[placement.row][placement.col] = {
+                    letter: placement.letter,
+                    isBlank: placement.isBlank
+                };
+            }
         }
 
         // Find the minimum and maximum coordinates along the primary direction
@@ -707,6 +713,11 @@ class GameState {
             }
         }
 
+        console.log('=== FIND PRIMARY WORD DEBUG ===');
+        console.log('Direction:', direction);
+        console.log('New Placements:', newPlacements);
+        console.log('Min Coord:', minCoord, 'Max Coord:', maxCoord, 'Fixed Coord:', fixedCoord);
+
         // Scan outward to find the complete word
         // Scan backward
         let currentCoord = minCoord;
@@ -721,6 +732,8 @@ class GameState {
             }
         }
         const startCoord = currentCoord + 1;
+        
+        console.log('Scanned backward to startCoord:', startCoord);
 
         // Scan forward and collect tiles
         const tiles = [];
@@ -730,13 +743,15 @@ class GameState {
             const col = direction === 'across' ? currentCoord : fixedCoord;
             
             if (tempBoard[row] && tempBoard[row][col]) {
+                const isNew = newPlacements.some(p => p.row === row && p.col === col);
                 tiles.push({
                     row,
                     col,
                     letter: tempBoard[row][col].letter,
                     isBlank: tempBoard[row][col].isBlank,
-                    isNew: newPlacements.some(p => p.row === row && p.col === col)
+                    isNew: isNew
                 });
+                console.log(`Tile at (${row}, ${col}): ${tempBoard[row][col].letter}, isNew: ${isNew}`);
                 currentCoord++;
             } else {
                 break;
@@ -748,6 +763,12 @@ class GameState {
         const word = tiles.map(t => t.letter).join('');
         const startRow = direction === 'across' ? fixedCoord : startCoord;
         const startCol = direction === 'across' ? startCoord : fixedCoord;
+
+        console.log('Complete word found:', word);
+        console.log('Total tiles:', tiles.length);
+        console.log('New tiles:', tiles.filter(t => t.isNew).length);
+        console.log('Existing tiles:', tiles.filter(t => !t.isNew).length);
+        console.log('=== END FIND PRIMARY WORD DEBUG ===');
 
         return {
             word,
@@ -1232,14 +1253,14 @@ class GameState {
 
     // Apply a turn to the game state
     applyTurn(turnData) {
-        const { word, startRow, startCol, direction, score, secondaryWords, blankTiles } = turnData;
+        const { startRow, startCol, direction, score, secondaryWords, blankTiles } = turnData;
         
         // Create turn record
         const turn = {
             playerIndex: this.currentPlayerIndex,
             playerId: this.getCurrentPlayer().id,
-            score: score,
-            word: word,
+            score: turnData.score,
+            word: turnData.word, // Use the full word from turnData
             secondaryWords: secondaryWords || [],
             startRow,
             startCol,
@@ -1251,9 +1272,9 @@ class GameState {
 
         // Apply tiles to board and update tile supply
         // Ensure blankTiles is a Set for calculateTurnScore and subsequent logic
-        const blankIndicesSet = new Set(blankTiles);
+        const blankIndicesSet = new Set(turnData.blankTiles);
 
-        const { breakdown } = this.calculateTurnScore(word, startRow, startCol, direction, blankIndicesSet);
+        const { breakdown } = this.calculateTurnScore(turnData.word, startRow, startCol, direction, blankIndicesSet);
 
         // Phase 3 Fix: Mark premium squares used in this turn
         const usedPremiumSquares = this.premiumSquareTracker.markPremiumSquaresForTurn(
@@ -1264,11 +1285,11 @@ class GameState {
         // Store used premium squares in turn record for undo functionality
         turn.usedPremiumSquares = usedPremiumSquares;
 
-        for (let i = 0; i < word.length; i++) {
-            const letter = word[i];
+        for (let i = 0; i < turnData.word.length; i++) {
+            const letter = turnData.word[i];
             const row = direction === 'across' ? startRow : startRow + i;
             const col = direction === 'across' ? startCol + i : startCol;
-            const isBlank = blankTiles.includes(i);
+            const isBlank = (turnData.blankTiles || []).includes(i);
 
             if (!this.boardState[row][col]) { // Only new placements affect tile supply
                 this.boardState[row][col] = { letter, isBlank };
