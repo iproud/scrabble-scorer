@@ -1,10 +1,10 @@
 // Game state management module
 class GameState {
     constructor() {
-        this.letterScores = { 
-            'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8, 
-            'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1, 
-            'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10 
+        this.letterScores = {
+            'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8,
+            'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
+            'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10
         };
         this.boardLayout = [
             ['TWS', '', '', 'DLS', '', '', '', 'TWS', '', '', '', 'DLS', '', '', 'TWS'],
@@ -41,16 +41,16 @@ class GameState {
             'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 4, 'T': 6,
             'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, 'BLANK': 2 // Using 'BLANK' for blank tiles
         };
-        
+
         // Phase 4 Fix: Initialize premium square tracker with state persistence
         this.premiumSquareTracker = new PremiumSquareTracker();
-        
+
         // Try to load saved state from localStorage first
         const stateLoaded = this.premiumSquareTracker.loadState();
         if (!stateLoaded) {
             console.log('GameState: No saved premium square state found, using fresh tracker');
         }
-        
+
         // Phase 3 Fix: Initialize tile validator
         this.tileValidator = new TileValidator(this.premiumSquareTracker);
     }
@@ -62,30 +62,30 @@ class GameState {
         this.players = gameData.players || [];
         this.turnHistory = gameData.turns || [];
         this.isGameActive = gameData.status === 'active';
-        
+
         // Restore board state from game data
         if (gameData.board_state && Array.isArray(gameData.board_state)) {
             this.boardState = gameData.board_state;
         } else {
             this.boardState = Array(15).fill(null).map(() => Array(15).fill(null));
         }
-        
+
         // Phase 4 Fix: Restore premium square tracker state after loading game data
         this.restorePremiumSquareTrackerState();
-        
+
         // Replay turns to rebuild board state
         this.replayTurns();
         this.restoreTileSupply(); // Restore tile supply after replaying turns
-        
+
         // CRITICAL FIX: Calculate correct current player for resumption
         this.currentPlayerIndex = this.calculateCurrentPlayerOnResume();
-        
+
         // Validate turn order and log any issues
         const validation = this.validateAndRepairTurnOrder();
         if (validation.issues.length > 0) {
             console.warn('Game resumption with issues:', validation.issues);
         }
-        
+
         console.log(`Game resumed: ${this.turnHistory.length} turns, current player: ${this.getCurrentPlayer()?.name} (index ${this.currentPlayerIndex})`);
     }
 
@@ -94,7 +94,7 @@ class GameState {
     replayTurns() {
         // Reset board
         this.boardState = Array(15).fill(null).map(() => Array(15).fill(null));
-        
+
         // Apply each turn
         this.turnHistory.forEach(turn => {
             if (turn.board_state_after) {
@@ -111,7 +111,7 @@ class GameState {
                     const isBlank = blankTiles.includes(i);
                     // Only place if it's a new tile placement (not already on board for the next turn)
                     if (this.boardState[row] && this.boardState[row][col] === null) {
-                         this.boardState[row][col] = { letter, isBlank };
+                        this.boardState[row][col] = { letter, isBlank };
                     }
                 }
             }
@@ -120,7 +120,7 @@ class GameState {
 
     // Restore tile supply based on current board state after replaying turns
     restoreTileSupply() {
-         this.tileSupply = {
+        this.tileSupply = {
             'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 3, 'H': 2, 'I': 9, 'J': 1,
             'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 4, 'T': 6,
             'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, 'BLANK': 2
@@ -144,12 +144,12 @@ class GameState {
     // Phase 4 Fix: Restore premium square tracker state with fallback mechanisms
     restorePremiumSquareTrackerState() {
         console.log('GameState: Restoring premium square tracker state');
-        
+
         try {
             // Method 1: Try to load from localStorage (most reliable for same session)
             if (this.premiumSquareTracker.loadState()) {
                 console.log('GameState: Premium square tracker state restored from localStorage');
-                
+
                 // Validate state consistency with board state
                 const validation = this.premiumSquareTracker.validateStateConsistency(this.boardState, this.boardLayout);
                 if (validation.valid) {
@@ -160,16 +160,16 @@ class GameState {
                     console.log('GameState: Attempting to reconstruct from turn history');
                 }
             }
-            
+
             // Method 2: Try to reconstruct from turn history
             if (this.turnHistory && this.turnHistory.length > 0) {
                 console.log('GameState: Attempting to reconstruct premium square tracker state from turn history');
                 if (this.premiumSquareTracker.reconstructFromTurnHistory(this.turnHistory)) {
                     console.log('GameState: Premium square tracker state reconstructed from turn history');
-                    
+
                     // Save the reconstructed state to localStorage for future use
                     this.premiumSquareTracker.saveState();
-                    
+
                     // Validate reconstructed state
                     const validation = this.premiumSquareTracker.validateStateConsistency(this.boardState, this.boardLayout);
                     if (validation.valid) {
@@ -180,15 +180,15 @@ class GameState {
                     }
                 }
             }
-            
+
             // Method 3: Fallback - reconstruct from current board state (least reliable)
             console.log('GameState: Attempting to reconstruct premium square tracker state from board state (fallback)');
             if (this.premiumSquareTracker.reconstructFromBoardState(this.boardState, this.boardLayout)) {
                 console.log('GameState: Premium square tracker state reconstructed from board state');
-                
+
                 // Save the reconstructed state to localStorage for future use
                 this.premiumSquareTracker.saveState();
-                
+
                 // Validate reconstructed state
                 const validation = this.premiumSquareTracker.validateStateConsistency(this.boardState, this.boardLayout);
                 if (validation.valid) {
@@ -198,12 +198,12 @@ class GameState {
                     console.warn('GameState: Reconstructed premium square tracker state inconsistency detected:', validation.issues);
                 }
             }
-            
+
             // Method 4: Last resort - use empty state if all else fails
             console.warn('GameState: All premium square tracker restoration methods failed, using empty state');
             this.premiumSquareTracker.clear();
             this.premiumSquareTracker.clearSavedState();
-            
+
         } catch (error) {
             console.error('GameState: Error restoring premium square tracker state:', error);
             console.error('GameState: Using empty premium square tracker state as fallback');
@@ -222,33 +222,33 @@ class GameState {
             console.log('Resume: No turn history, starting with first player (index 0)');
             return 0; // New game - first player
         }
-        
+
         // Get the last turn that was actually played
         const lastTurn = this.turnHistory[this.turnHistory.length - 1];
         const lastPlayerId = lastTurn.playerId || lastTurn.player_id;
         const lastRoundNumber = lastTurn.round_number;
-        
+
         console.log('Resume: Last turn analysis:', {
             lastPlayerId,
             lastRoundNumber,
             totalTurns: this.turnHistory.length,
             playersCount: this.players.length
         });
-        
+
         // Find the last player's index in our players array
         const lastPlayerIndex = this.players.findIndex(p => p.id === lastPlayerId);
         if (lastPlayerIndex === -1) {
             console.warn('Resume: Last player not found in current players list, defaulting to first player');
             return 0;
         }
-        
+
         // Simple case: next player in sequence
         let nextPlayerIndex = (lastPlayerIndex + 1) % this.players.length;
-        
+
         // Complex case: check if round is complete
         const turnsInCurrentRound = this.turnHistory.filter(t => t.round_number === lastRoundNumber);
         const isRoundComplete = turnsInCurrentRound.length === this.players.length;
-        
+
         console.log('Resume: Round analysis:', {
             lastPlayerIndex,
             nextPlayerIndex,
@@ -256,7 +256,7 @@ class GameState {
             expectedTurnsInRound: this.players.length,
             isRoundComplete
         });
-        
+
         if (isRoundComplete) {
             // Round is complete, start new round with first player
             console.log('Resume: Round complete, starting new round with first player (index 0)');
@@ -265,12 +265,12 @@ class GameState {
             // Round is incomplete, find who hasn't played yet
             const playersWhoPlayedInRound = turnsInCurrentRound.map(t => t.playerId || t.player_id);
             const playersWhoHaventPlayed = this.players.filter(p => !playersWhoPlayedInRound.includes(p.id));
-            
+
             console.log('Resume: Incomplete round analysis:', {
                 playersWhoPlayedInRound,
                 playersWhoHaventPlayed: playersWhoHaventPlayed.map(p => ({ id: p.id, name: p.name }))
             });
-            
+
             if (playersWhoHaventPlayed.length === 1) {
                 // Only one player hasn't played - they're next
                 const nextPlayer = playersWhoHaventPlayed[0];
@@ -293,19 +293,19 @@ class GameState {
     validateAndRepairTurnOrder() {
         const issues = [];
         const repairs = [];
-        
+
         if (!this.turnHistory || this.turnHistory.length === 0) {
             return { issues, repairs };
         }
-        
+
         // Check 1: Round sequence consistency
         const rounds = [...new Set(this.turnHistory.map(t => t.round_number))].sort();
         for (let i = 1; i < rounds.length; i++) {
-            if (rounds[i] !== rounds[i-1] + 1) {
-                issues.push(`Round gap: ${rounds[i-1]} to ${rounds[i]}`);
+            if (rounds[i] !== rounds[i - 1] + 1) {
+                issues.push(`Round gap: ${rounds[i - 1]} to ${rounds[i]}`);
             }
         }
-        
+
         // Check 2: Player turn consistency within rounds
         const roundPlayerMap = new Map();
         this.turnHistory.forEach(turn => {
@@ -315,35 +315,35 @@ class GameState {
             }
             roundPlayerMap.get(key).push(turn.playerId || turn.player_id);
         });
-        
+
         roundPlayerMap.forEach((playerIds, roundNum) => {
             if (playerIds.length > this.players.length) {
                 issues.push(`Round ${roundNum} has ${playerIds.length} turns but only ${this.players.length} players`);
             }
-            
+
             // Check for duplicate players in same round
             const duplicates = playerIds.filter((id, index) => playerIds.indexOf(id) !== index);
             if (duplicates.length > 0) {
                 issues.push(`Round ${roundNum} has duplicate players: ${duplicates}`);
             }
         });
-        
+
         // Check 3: Turn order sequence consistency
         for (let i = 1; i < this.turnHistory.length; i++) {
             const currentTurn = this.turnHistory[i];
-            const previousTurn = this.turnHistory[i-1];
-            
+            const previousTurn = this.turnHistory[i - 1];
+
             // Check for chronological consistency
             if (currentTurn.round_number < previousTurn.round_number) {
-                issues.push(`Turn order violation: Turn ${i} (round ${currentTurn.round_number}) comes after turn ${i-1} (round ${previousTurn.round_number})`);
+                issues.push(`Turn order violation: Turn ${i} (round ${currentTurn.round_number}) comes after turn ${i - 1} (round ${previousTurn.round_number})`);
             }
         }
-        
+
         if (issues.length > 0) {
             console.warn('Turn order validation issues detected:', issues);
             // Could implement repair logic here in the future
         }
-        
+
         return { issues, repairs };
     }
 
@@ -374,8 +374,8 @@ class GameState {
 
     // Phase 1 Fix: Board position validation
     isValidBoardPosition(row, col) {
-        return Number.isInteger(row) && Number.isInteger(col) && 
-               row >= 0 && row < 15 && col >= 0 && col < 15;
+        return Number.isInteger(row) && Number.isInteger(col) &&
+            row >= 0 && row < 15 && col >= 0 && col < 15;
     }
 
     // Phase 1 Fix: Board state locking mechanism
@@ -459,19 +459,19 @@ class GameState {
     // Phase 3 Fix: Corrected identifyNewPlacements for extending existing words
     identifyNewPlacements(word, startRow, startCol, direction, blankIndices) {
         const placements = [];
-        
+
         // Validate input parameters
         if (!word || typeof word !== 'string' || startRow === null || startCol === null || !direction) {
             console.warn('Invalid parameters in identifyNewPlacements');
             return [];
         }
-        
+
         // Validate blank indices
         if (!blankIndices || !(blankIndices instanceof Set)) {
             console.warn('Invalid blankIndices in identifyNewPlacements, using empty Set');
             blankIndices = new Set();
         }
-        
+
         for (let i = 0; i < word.length; i++) {
             const letter = word[i];
             const row = direction === 'across' ? startRow : startRow + i;
@@ -482,19 +482,19 @@ class GameState {
                 console.warn(`Invalid position in identifyNewPlacements: ${row}, ${col}`);
                 continue; // Skip invalid positions
             }
-            
+
             const existingTile = this.boardState[row][col];
             const isBlank = blankIndices.has(i);
-            
+
             // Phase 3 Fix: Correct logic for extending existing words
             if (existingTile) {
                 // This is an existing tile that's part of the word being extended
                 // It should be marked as part of the word but not as a new placement
-                placements.push({ 
-                    row, 
-                    col, 
-                    letter: existingTile.letter, 
-                    isBlank: existingTile.isBlank, 
+                placements.push({
+                    row,
+                    col,
+                    letter: existingTile.letter,
+                    isBlank: existingTile.isBlank,
                     wordIndex: i,
                     isNew: false, // This is an existing tile, not a new placement
                     actualLetter: existingTile.letter
@@ -503,11 +503,11 @@ class GameState {
                 // No existing tile - this is a new tile placement
                 if (isBlank && letter && letter !== 'BLANK') {
                     // This is a blank tile being used as the letter
-                    placements.push({ 
-                        row, 
-                        col, 
-                        letter, 
-                        isBlank: true, 
+                    placements.push({
+                        row,
+                        col,
+                        letter,
+                        isBlank: true,
                         wordIndex: i,
                         isNew: true, // New blank tile placement
                         actualLetter: letter,
@@ -515,33 +515,33 @@ class GameState {
                     });
                 } else {
                     // New regular tile placement
-                    placements.push({ 
-                        row, 
-                        col, 
-                        letter, 
-                        isBlank: false, 
+                    placements.push({
+                        row,
+                        col,
+                        letter,
+                        isBlank: false,
                         wordIndex: i,
                         isNew: true // New tile placement
                     });
                 }
             }
         }
-        
+
         // Phase 3 Fix: Enhanced debugging for extending words
         if (placements.length > 0) {
             const newPlacements = placements.filter(p => p.isNew);
             const existingPlacements = placements.filter(p => !p.isNew);
-            
+
             console.log('=== IDENTIFY NEW PLACEMENTS DEBUG ===');
             console.log('Word:', word);
-            console.log('Start Position:', {row: startRow, col: startCol});
+            console.log('Start Position:', { row: startRow, col: startCol });
             console.log('Direction:', direction);
             console.log('Total Placements:', placements.length);
             console.log('New Placements:', newPlacements);
             console.log('Existing Placements:', existingPlacements);
             console.log('=== END DEBUG ===');
         }
-        
+
         return placements;
     }
 
@@ -585,7 +585,7 @@ class GameState {
 
         // Phase 1 Fix: Validate that we haven't missed any words in complex scenarios
         const validatedWords = this.validateWordDetection(detectedWords, newPlacements, primaryDirection);
-        
+
         return validatedWords;
     }
 
@@ -600,7 +600,7 @@ class GameState {
     validateWordDetection(detectedWords, newPlacements, primaryDirection) {
         // Phase 1 Fix: Ensure all new placements are covered by detected words
         const coveredPlacements = new Set();
-        
+
         for (const word of detectedWords) {
             for (const tile of word.tiles) {
                 const placementKey = `${tile.row}-${tile.col}`;
@@ -632,9 +632,9 @@ class GameState {
     validateParallelPlay(detectedWords, newPlacements, primaryDirection) {
         // In parallel play, we might have multiple secondary words
         // Ensure we detect all possible perpendicular words
-        
+
         const allSecondaryWords = [];
-        
+
         // Check each new placement for potential secondary words
         for (const placement of newPlacements.filter(p => p.isNew)) {
             const secondaryWord = this.findSecondaryWord(placement, primaryDirection, newPlacements);
@@ -649,7 +649,7 @@ class GameState {
         // Phase 1 Fix: Remove duplicates while preserving all valid words
         const uniqueSecondaryWords = [];
         const seenKeys = new Set();
-        
+
         for (const word of allSecondaryWords) {
             const wordKey = this.createWordKey(word);
             if (!seenKeys.has(wordKey)) {
@@ -661,7 +661,7 @@ class GameState {
         // Combine primary word with unique secondary words
         const primaryWord = detectedWords.find(w => w.isPrimary);
         const result = primaryWord ? [primaryWord, ...uniqueSecondaryWords] : uniqueSecondaryWords;
-        
+
         return result;
     }
 
@@ -679,14 +679,14 @@ class GameState {
         // This ensures that when we scan for the full word, both the newly
         // placed tiles and any existing tiles on the board are considered.
         const tempBoard = this.createSafeBoardCopy();
-        
+
         // Phase 1 Fix: Add validation for new placements
         for (const placement of newPlacements) {
             if (!this.isValidBoardPosition(placement.row, placement.col)) {
                 console.warn(`Invalid placement position: ${placement.row}, ${placement.col}`);
                 continue;
             }
-            
+
             // Only add a tile to the temporary board if it's a new placement.
             // Existing tiles are already part of the copied board state.
             if (placement.isNew) {
@@ -704,10 +704,10 @@ class GameState {
         for (const placement of newPlacements) {
             const coord = direction === 'across' ? placement.col : placement.row;
             const otherCoord = direction === 'across' ? placement.row : placement.col;
-            
+
             minCoord = Math.min(minCoord, coord);
             maxCoord = Math.max(maxCoord, coord);
-            
+
             if (fixedCoord === null) {
                 fixedCoord = otherCoord;
             }
@@ -724,7 +724,7 @@ class GameState {
         while (currentCoord >= 0) {
             const row = direction === 'across' ? fixedCoord : currentCoord;
             const col = direction === 'across' ? currentCoord : fixedCoord;
-            
+
             if (tempBoard[row] && tempBoard[row][col]) {
                 currentCoord--;
             } else {
@@ -732,7 +732,7 @@ class GameState {
             }
         }
         const startCoord = currentCoord + 1;
-        
+
         console.log('Scanned backward to startCoord:', startCoord);
 
         // Scan forward and collect tiles
@@ -741,7 +741,7 @@ class GameState {
         while (currentCoord < 15) {
             const row = direction === 'across' ? fixedCoord : currentCoord;
             const col = direction === 'across' ? currentCoord : fixedCoord;
-            
+
             if (tempBoard[row] && tempBoard[row][col]) {
                 const isNew = newPlacements.some(p => p.row === row && p.col === col);
                 tiles.push({
@@ -814,7 +814,7 @@ class GameState {
             const prevRow = perpDirection === 'down' ? currentRow - 1 : currentRow;
             const prevCol = perpDirection === 'across' ? currentCol - 1 : currentCol;
 
-            if (prevRow >= 0 && prevCol >= 0 && 
+            if (prevRow >= 0 && prevCol >= 0 &&
                 tempBoard[prevRow] && tempBoard[prevRow][prevCol]) {
                 currentRow = prevRow;
                 currentCol = prevCol;
@@ -832,7 +832,7 @@ class GameState {
 
         while (currentRow < 15 && currentCol < 15) {
             if (tempBoard[currentRow] && tempBoard[currentRow][currentCol]) {
-                const isNew = newPlacements ? 
+                const isNew = newPlacements ?
                     newPlacements.some(p => p.row === currentRow && p.col === currentCol && p.isNew) :
                     (currentRow === placement.row && currentCol === placement.col);
 
@@ -882,17 +882,17 @@ class GameState {
             // Apply letter bonuses only for newly placed tiles
             if (tile.isNew) {
                 const bonus = this.boardLayout[tile.row][tile.col];
-                
+
                 // Phase 3 Fix: Check if premium square can be used (not already used)
                 const canUseBonus = this.premiumSquareTracker.canUsePremiumSquare(
-                    this.boardLayout, 
-                    tile.row, 
-                    tile.col, 
+                    this.boardLayout,
+                    tile.row,
+                    tile.col,
                     tile.isNew
                 );
-                
+
                 console.log(`Checking ${bonus} bonus at (${tile.row}, ${tile.col}) for tile ${tile.letter}. Can use: ${canUseBonus.canUse}, Reason: ${canUseBonus.reason}`);
-                
+
                 if (canUseBonus.canUse) {
                     bonusApplied = true;
                     if (bonus === 'DLS') {
@@ -944,7 +944,7 @@ class GameState {
                 break;
             }
         }
-        
+
         // Now trace forward from the determined start to reconstruct the full word
         let currentR = traceBackR;
         let currentC = traceBackC;
@@ -959,7 +959,7 @@ class GameState {
                 const letter = this.getLetterAtPlacement(placement, currentWord, startRow, startCol, mainDirection);
                 tile = { letter, isBlank: placement.isBlank };
             }
-            
+
             if (tile) {
                 wordParts.push({ ...tile, row: currentR, col: currentC });
                 currentR = perpDirection === 'down' ? currentR + 1 : currentR;
@@ -975,18 +975,18 @@ class GameState {
     getLetterAtPlacement(placement, currentWord, startRow, startCol, direction) {
         // Calculate the position of this placement within the current word
         let wordIndex = -1;
-        
+
         if (direction === 'across') {
             wordIndex = placement.col - startCol;
         } else {
             wordIndex = placement.row - startRow;
         }
-        
+
         // Return the letter at this position in the current word
         if (wordIndex >= 0 && wordIndex < currentWord.length) {
             return currentWord[wordIndex];
         }
-        
+
         // Fallback to placement letter if available
         return placement.letter || '';
     }
@@ -995,7 +995,7 @@ class GameState {
     scoreSecondaryWord(wordParts, newTilePlacement) {
         let score = 0;
         let multiplier = 1;
-        
+
         for (const part of wordParts) {
             const { letter, row, col, isBlank } = part;
             let letterScore = isBlank ? 0 : (this.letterScores[letter] || 0);
@@ -1016,12 +1016,12 @@ class GameState {
     validateTurnPlacement(word, startRow, startCol, direction, blankIndices = new Set()) {
         // Phase 3 Fix: Use Tile Validator for comprehensive validation
         const tileValidation = this.tileValidator.validateWordPlacement(
-            word, 
-            startRow, 
-            startCol, 
-            direction, 
-            this.boardState, 
-            this.boardLayout, 
+            word,
+            startRow,
+            startCol,
+            direction,
+            this.boardState,
+            this.boardLayout,
             blankIndices
         );
 
@@ -1039,7 +1039,7 @@ class GameState {
         }
 
         const { breakdown } = this.calculateTurnScore(word, startRow, startCol, direction, blankIndices);
-        
+
         if (breakdown.error) {
             return { valid: false, error: breakdown.error };
         }
@@ -1054,7 +1054,7 @@ class GameState {
         if (!tileAvailabilityValidation.valid) {
             return tileAvailabilityValidation;
         }
-        
+
         // Phase 3 Fix: Enhanced connection validation
         const hasExistingTiles = this.boardState.some(row => row.some(cell => cell !== null));
         if (!hasExistingTiles) {
@@ -1063,11 +1063,11 @@ class GameState {
             for (let i = 0; i < word.length; i++) {
                 const row = direction === 'across' ? startRow : startRow + i;
                 const col = direction === 'across' ? startCol + i : startCol;
-                
+
                 if (!this.isValidBoardPosition(row, col)) {
                     return { valid: false, error: `Word extends beyond board boundaries at position ${row}, ${col}.` };
                 }
-                
+
                 wordPath.push({ row, col });
             }
             if (!wordPath.some(p => p.row === 7 && p.col === 7)) {
@@ -1076,10 +1076,10 @@ class GameState {
         } else {
             // Subsequent words must connect to existing tiles
             const usesExistingTile = word.length > newPlacements.length;
-            const isAdjacentToExisting = newPlacements.some(p => 
-                (p.row > 0 && this.boardState[p.row - 1][p.col]) || 
+            const isAdjacentToExisting = newPlacements.some(p =>
+                (p.row > 0 && this.boardState[p.row - 1][p.col]) ||
                 (p.row < 14 && this.boardState[p.row + 1][p.col]) ||
-                (p.col > 0 && this.boardState[p.row][p.col - 1]) || 
+                (p.col > 0 && this.boardState[p.row][p.col - 1]) ||
                 (p.col < 14 && this.boardState[p.row][p.col + 1])
             );
             if (!usesExistingTile && !isAdjacentToExisting) {
@@ -1096,25 +1096,25 @@ class GameState {
         if (!this.isValidBoardPosition(startRow, startCol)) {
             return { valid: false, error: `Invalid start position: ${startRow}, ${startCol}. Position must be within board boundaries (0-14).` };
         }
-        
+
         // Phase 1 Fix: Check if word fits within board boundaries
         const endRow = direction === 'across' ? startRow : startRow + word.length - 1;
         const endCol = direction === 'across' ? startCol + word.length - 1 : startCol;
-        
+
         if (!this.isValidBoardPosition(endRow, endCol)) {
             return { valid: false, error: `Word extends beyond board boundaries. End position ${endRow}, ${endCol} is invalid.` };
         }
-        
+
         // Phase 1 Fix: Check all intermediate positions
         for (let i = 0; i < word.length; i++) {
             const row = direction === 'across' ? startRow : startRow + i;
             const col = direction === 'across' ? startCol + i : startCol;
-            
+
             if (!this.isValidBoardPosition(row, col)) {
                 return { valid: false, error: `Word position ${i} (${row}, ${col}) is outside board boundaries.` };
             }
         }
-        
+
         // Phase 1 Fix: Special edge case validation for corners and edges
         if (this.isEdgeOrCornerPlacement(startRow, startCol, direction, word.length)) {
             // Additional validation for edge placements
@@ -1123,7 +1123,7 @@ class GameState {
                 return edgeValidation;
             }
         }
-        
+
         return { valid: true };
     }
 
@@ -1131,7 +1131,7 @@ class GameState {
     isEdgeOrCornerPlacement(startRow, startCol, direction, wordLength) {
         const endRow = direction === 'across' ? startRow : startRow + wordLength - 1;
         const endCol = direction === 'across' ? startCol + wordLength - 1 : startCol;
-        
+
         // Check if any part of the word touches the board edges
         return startRow === 0 || startCol === 0 || endRow === 14 || endCol === 14;
     }
@@ -1145,7 +1145,7 @@ class GameState {
             const col = direction === 'across' ? startCol + i : startCol;
             positions.push({ row, col });
         }
-        
+
         // Phase 1 Fix: Check for potential index out-of-bounds in word detection
         for (const pos of positions) {
             // Check adjacent positions for word detection
@@ -1155,7 +1155,7 @@ class GameState {
                 { row: pos.row, col: pos.col - 1 },
                 { row: pos.row, col: pos.col + 1 }
             ];
-            
+
             for (const adj of adjacentPositions) {
                 if (!this.isValidBoardPosition(adj.row, adj.col)) {
                     // This is expected for edge placements, but ensure word detection handles it
@@ -1163,31 +1163,31 @@ class GameState {
                 }
             }
         }
-        
+
         return { valid: true };
     }
 
     // Phase 3 Fix: Critical fix for tile availability validation when extending existing words
     validateTileAvailability(newPlacements, blankIndices) {
         const requiredTiles = {};
-        
+
         // Phase 3 Fix: Ensure blankIndices is properly handled for word extensions
         if (!blankIndices || !(blankIndices instanceof Set)) {
             console.warn('validateTileAvailability: Invalid blankIndices, using empty Set');
             blankIndices = new Set();
         }
-        
+
         // Phase 3 Fix: Only count tiles that are actually NEW (isNew: true)
         // This prevents counting existing tiles when extending words
         const actuallyNewPlacements = newPlacements.filter(placement => placement.isNew);
-        
+
         console.log('=== TILE AVAILABILITY DEBUG ===');
         console.log('All Placements:', newPlacements);
         console.log('Actually New Placements:', actuallyNewPlacements);
         console.log('Blank Indices:', blankIndices);
         console.log('Blank Indices Type:', typeof blankIndices);
         console.log('Blank Indices Size:', blankIndices.size);
-        
+
         // Phase 3 Fix: Ensure we have at least one new placement (Scrabble rule)
         if (actuallyNewPlacements.length === 0) {
             console.log('❌ No new tiles being placed - this violates Scrabble rules');
@@ -1196,14 +1196,14 @@ class GameState {
                 error: "No new tiles being placed (Scrabble rule violation)"
             };
         }
-        
+
         // Count required tiles for ACTUALLY NEW placements only
         actuallyNewPlacements.forEach(placement => {
             const letter = placement.letter;
             const isBlank = blankIndices.has(placement.wordIndex);
-            
+
             console.log(`Processing placement: ${letter} at (${placement.row}, ${placement.col}), isNew: ${placement.isNew}, isBlank: ${isBlank}`);
-            
+
             if (isBlank) {
                 requiredTiles['BLANK'] = (requiredTiles['BLANK'] || 0) + 1;
                 console.log(`Required BLANK tile: ${requiredTiles['BLANK']}`);
@@ -1232,12 +1232,12 @@ class GameState {
         }
 
         if (missingTiles.length > 0) {
-            const missingTileMessages = missingTiles.map(tile => 
+            const missingTileMessages = missingTiles.map(tile =>
                 `${tile.letter}: ${tile.shortage} needed (${tile.available} available)`
             ).join(', ');
-            
+
             console.log('❌ Tile validation FAILED:', missingTileMessages);
-            
+
             return {
                 valid: false,
                 error: `Not enough tiles in bag. Missing: ${missingTileMessages}`,
@@ -1254,7 +1254,7 @@ class GameState {
     // Apply a turn to the game state
     applyTurn(turnData) {
         const { startRow, startCol, direction, score, secondaryWords, blankTiles } = turnData;
-        
+
         // Create turn record
         const turn = {
             playerIndex: this.currentPlayerIndex,
@@ -1278,10 +1278,10 @@ class GameState {
 
         // Phase 3 Fix: Mark premium squares used in this turn
         const usedPremiumSquares = this.premiumSquareTracker.markPremiumSquaresForTurn(
-            this.boardLayout, 
+            this.boardLayout,
             breakdown.newPlacements
         );
-        
+
         // Store used premium squares in turn record for undo functionality
         turn.usedPremiumSquares = usedPremiumSquares;
 
@@ -1307,16 +1307,16 @@ class GameState {
 
         // Capture board state after the turn
         turn.boardStateAfter = JSON.parse(JSON.stringify(this.boardState));
-        
+
         // Add to history
         this.turnHistory.push(turn);
-        
+
         // Phase 4 Fix: Save premium square tracker state after each turn
         this.premiumSquareTracker.saveState();
-        
+
         // Move to next player
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-        
+
         return turn;
     }
 
@@ -1334,24 +1334,55 @@ class GameState {
 
             // If successful, proceed with client-side state restoration
             const lastTurn = this.turnHistory.pop();
-            
+
             console.log('Undo: Restoring state after undoing turn:', {
                 undonePlayerIndex: lastTurn.playerIndex,
                 undonePlayerId: lastTurn.playerId,
                 turnsBeforeUndo: this.turnHistory.length + 1,
                 turnsAfterUndo: this.turnHistory.length
             });
-            
-            // Restore board state (using the state *before* the undone turn)
-            this.boardState = JSON.parse(JSON.stringify(lastTurn.boardStateBefore));
-            
+
+            // Restore board state
+            // For resumed games, boardStateBefore is missing, so we calculate it or use previous turn's state
+            let previousBoardState = null;
+            if (lastTurn.boardStateBefore) {
+                previousBoardState = lastTurn.boardStateBefore;
+            } else if (this.turnHistory.length > 0) {
+                const previousTurn = this.turnHistory[this.turnHistory.length - 1];
+                // Handle different case styles from server/client
+                const rawState = previousTurn.boardStateAfter || previousTurn.board_state_after || previousTurn.boardState;
+                previousBoardState = typeof rawState === 'string' ? JSON.parse(rawState) : rawState;
+            }
+
+            // Fallback to empty board if no history
+            if (!previousBoardState || !Array.isArray(previousBoardState)) {
+                previousBoardState = Array(15).fill(null).map(() => Array(15).fill(null));
+            }
+
+            this.boardState = JSON.parse(JSON.stringify(previousBoardState));
+
             // Restore player state (score)
-            this.players[lastTurn.playerIndex].score = lastTurn.playerStateBefore.score;
-            
+            // For resumed games, playerStateBefore is missing, so we subtract the turn score
+            const playerToUpdate = this.players.find(p => p.id === (lastTurn.playerId || lastTurn.player_id));
+            if (playerToUpdate) {
+                playerToUpdate.score -= (lastTurn.score || 0);
+            } else if (typeof lastTurn.playerIndex === 'number' && this.players[lastTurn.playerIndex]) {
+                // Fallback to index if available
+                this.players[lastTurn.playerIndex].score -= (lastTurn.score || 0);
+            }
+
             // Increment tile supply for tiles that were un-placed
             // Ensure blankTiles is a Set for calculateTurnScore
-            const { breakdown } = this.calculateTurnScore(lastTurn.word, lastTurn.startRow, lastTurn.startCol, lastTurn.direction, new Set(lastTurn.blankTiles));
-            const newPlacementsInUndoneTurn = breakdown.newPlacements; 
+            const blankTiles = new Set(lastTurn.blankTiles || (typeof lastTurn.blank_tiles === 'string' ? JSON.parse(lastTurn.blank_tiles) : []));
+            const { breakdown } = this.calculateTurnScore(
+                lastTurn.word,
+                lastTurn.startRow || lastTurn.start_row,
+                lastTurn.startCol || lastTurn.start_col,
+                lastTurn.direction,
+                blankTiles
+            );
+
+            const newPlacementsInUndoneTurn = breakdown.newPlacements;
             for (const placement of newPlacementsInUndoneTurn) {
                 if (placement.isBlank) {
                     this.tileSupply['BLANK']++;
@@ -1359,24 +1390,24 @@ class GameState {
                     this.tileSupply[placement.letter]++;
                 }
             }
-            
+
             // Phase 3 Fix: Restore premium squares that were used in the undone turn
             if (lastTurn.usedPremiumSquares) {
                 this.premiumSquareTracker.restorePremiumSquares(lastTurn.usedPremiumSquares);
                 console.log('Restored premium squares:', lastTurn.usedPremiumSquares);
             }
-            
+
             // CRITICAL FIX: Recalculate current player after undo using same logic as resume
             const currentPlayerBeforeUndo = this.currentPlayerIndex;
             this.currentPlayerIndex = this.calculateCurrentPlayerOnResume();
-            
+
             console.log('Undo: Current player recalculation:', {
                 currentPlayerBeforeUndo,
                 currentPlayerAfterUndo: this.currentPlayerIndex,
                 nextPlayerName: this.getCurrentPlayer()?.name,
                 logic: 'Using same calculateCurrentPlayerOnResume logic as game resumption'
             });
-            
+
             return true;
 
         } catch (error) {
@@ -1421,7 +1452,7 @@ class GameState {
                 traceForwardR++;
             }
         }
-        
+
         return { word, startRow: newStartRow, startCol: newStartCol };
     }
 
@@ -1431,36 +1462,36 @@ class GameState {
         const totalTurns = this.turnHistory.length;
         const playersCount = this.players.length;
         const currentRound = Math.floor((totalTurns - 1) / playersCount) + 1;
-        
+
         let highestScoringTurn = null;
-        
+
         // Fix: Ensure we have valid turn data before finding highest scoring turn
         if (this.turnHistory.length > 0) {
             // Filter out any invalid turns
-            const validTurns = this.turnHistory.filter(turn => 
-                turn && 
-                typeof turn.score === 'number' && 
-                turn.score > 0 && 
-                turn.word && 
+            const validTurns = this.turnHistory.filter(turn =>
+                turn &&
+                typeof turn.score === 'number' &&
+                turn.score > 0 &&
+                turn.word &&
                 turn.word.trim().length > 0
             );
-            
+
             if (validTurns.length > 0) {
-                highestScoringTurn = validTurns.reduce((max, turn) => 
+                highestScoringTurn = validTurns.reduce((max, turn) =>
                     turn.score > max.score ? turn : max, validTurns[0]);
             }
         }
 
         // Fix: Calculate player statistics with better error handling
         const playerStats = this.players.map(player => {
-            const playerTurns = this.turnHistory.filter(t => 
+            const playerTurns = this.turnHistory.filter(t =>
                 t.playerId === player.id || t.player_id === player.id
             );
-            const validPlayerTurns = playerTurns.filter(t => 
+            const validPlayerTurns = playerTurns.filter(t =>
                 typeof t.score === 'number' && t.score > 0
             );
-            const averageScore = validPlayerTurns.length > 0 
-                ? validPlayerTurns.reduce((sum, t) => sum + t.score, 0) / validPlayerTurns.length 
+            const averageScore = validPlayerTurns.length > 0
+                ? validPlayerTurns.reduce((sum, t) => sum + t.score, 0) / validPlayerTurns.length
                 : 0;
 
             return {
@@ -1476,11 +1507,11 @@ class GameState {
             highestScoringTurn,
             totalTurns,
             players: playerStats,
-            validTurns: this.turnHistory.filter(t => 
-                t && 
-                typeof t.score === 'number' && 
-                t.score > 0 && 
-                t.word && 
+            validTurns: this.turnHistory.filter(t =>
+                t &&
+                typeof t.score === 'number' &&
+                t.score > 0 &&
+                t.word &&
                 t.word.trim().length > 0
             ).length
         };
@@ -1498,14 +1529,14 @@ class GameState {
     // Calculate remaining tiles from the bag (tiles that were never played)
     calculateRemainingTiles() {
         const remainingTiles = [];
-        
+
         // Create a copy of the initial tile supply
         const initialSupply = {
             'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 3, 'H': 2, 'I': 9, 'J': 1,
             'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2, 'Q': 1, 'R': 6, 'S': 4, 'T': 6,
             'U': 4, 'V': 2, 'W': 2, 'X': 1, 'Y': 2, 'Z': 1, 'BLANK': 2
         };
-        
+
         // Subtract tiles that are currently on the board
         for (let r = 0; r < 15; r++) {
             for (let c = 0; c < 15; c++) {
@@ -1519,7 +1550,7 @@ class GameState {
                 }
             }
         }
-        
+
         // The remaining tiles in initialSupply are the tiles left in the bag
         for (const [letter, count] of Object.entries(initialSupply)) {
             for (let i = 0; i < count; i++) {
@@ -1530,7 +1561,7 @@ class GameState {
                 }
             }
         }
-        
+
         return remainingTiles;
     }
 
@@ -1538,55 +1569,50 @@ class GameState {
     calculateFinalScores(endingPlayerId, tileDistribution) {
         const finalScores = {};
         const players = this.players;
-        
+
         // Start with current scores
         players.forEach(player => {
             finalScores[player.id] = player.score;
         });
-        
-        // Calculate total bonus for ending player (sum of all remaining tiles)
+
+        // Calculate total bonus for ending player (sum of all remaining tiles from other players)
+        // FIX: Only count tiles from other players' racks, NOT the bag.
         let totalBonus = 0;
-        const remainingTiles = this.calculateRemainingTiles();
-        remainingTiles.forEach(tile => {
-            if (tile === '') {
-                // Blank tile has no points
-                return;
-            }
-            totalBonus += this.letterScores[tile] || 0;
-        });
-        
-        // Apply bonus to ending player
-        finalScores[endingPlayerId] += totalBonus;
-        
-        // Apply deductions to other players based on assigned tiles
+
+        // Iterate through all players in the distribution map
         for (const [playerId, tiles] of Object.entries(tileDistribution)) {
-            if (playerId === endingPlayerId) continue; // Skip ending player
-            
+            // Ensure ID comparison is type-safe (string vs number)
+            if (String(playerId) === String(endingPlayerId)) continue;
+
+            // Skip if tiles is not an array or empty
+            if (!tiles || !Array.isArray(tiles)) continue;
+
+            // Calculate deduction for this player
             let deduction = 0;
             tiles.forEach(tile => {
-                if (tile === '') {
+                if (tile === '' || tile === '_') {
                     // Blank tile has no points
                     return;
                 }
                 deduction += this.letterScores[tile] || 0;
             });
-            
+
+            // Apply deduction to the player
+            // Ensure we subtract from the current final score
             finalScores[playerId] -= deduction;
+
+            // Add to winner's bonus
+            totalBonus += deduction;
         }
-        
-        // Special case for 2-player games: ending player gets bonus, other player gets deduction for their own tiles
-        // NO additional deduction for ending player's bonus - that's incorrect Scrabble logic
-        // The deduction for other players is already applied above based on their own remaining tiles
-        if (players.length === 2) {
-            console.log('=== FINAL SCORE CALCULATION DEBUG ===');
-            console.log('2-player game ending logic:');
-            console.log('Ending player ID:', endingPlayerId);
-            console.log('Tile distribution:', tileDistribution);
-            console.log('Total bonus for ending player:', totalBonus);
-            console.log('Final scores before 2-player logic:', finalScores);
-            console.log('=== END DEBUG ===');
-        }
-        
+
+        // Apply bonus to ending player
+        finalScores[endingPlayerId] += totalBonus;
+
+        console.log('=== FINAL SCORE CALCULATION ===');
+        console.log('Ending Player:', endingPlayerId);
+        console.log('Total Bonus calculated (from racks):', totalBonus);
+        console.log('Final Scores:', finalScores);
+
         return finalScores;
     }
 
@@ -1594,17 +1620,17 @@ class GameState {
     generateFinalAdjustmentTurns(endingPlayerId, tileDistribution) {
         const players = this.players;
         const adjustmentTurns = [];
-        
+
         // Calculate the final round number (one more than the current highest round)
-        const finalRoundNumber = this.turnHistory.length > 0 
+        const finalRoundNumber = this.turnHistory.length > 0
             ? Math.max(...this.turnHistory.map(t => t.round_number || 1)) + 1
             : 1;
-        
+
         // Calculate total bonus for ending player (sum of all remaining tiles from other players)
         let totalBonus = 0;
         for (const [playerId, tiles] of Object.entries(tileDistribution)) {
             if (playerId === endingPlayerId) continue; // Skip ending player
-            
+
             tiles.forEach(tile => {
                 if (tile === '') {
                     // Blank tile has no points
@@ -1613,7 +1639,7 @@ class GameState {
                 totalBonus += this.letterScores[tile] || 0;
             });
         }
-        
+
         // Create adjustment turn for ending player (positive bonus)
         const endingPlayer = players.find(p => p.id === endingPlayerId);
         if (endingPlayer) {
@@ -1630,14 +1656,14 @@ class GameState {
                 blank_tiles: []
             });
         }
-        
+
         // Create adjustment turns for other players (negative deductions)
         for (const [playerId, tiles] of Object.entries(tileDistribution)) {
             if (playerId === endingPlayerId) continue; // Skip ending player
-            
+
             const player = players.find(p => p.id === playerId);
             if (!player) continue;
-            
+
             // Calculate deduction for this player
             let deduction = 0;
             tiles.forEach(tile => {
@@ -1647,16 +1673,16 @@ class GameState {
                 }
                 deduction += this.letterScores[tile] || 0;
             });
-            
+
             // Create word from remaining tiles (filter out blanks)
             const remainingTilesWord = tiles
                 .filter(tile => tile !== '')
                 .sort()
                 .join('');
-            
+
             // Handle empty case
             const word = remainingTilesWord || (deduction > 0 ? remainingTilesWord : '<EMPTY>');
-            
+
             adjustmentTurns.push({
                 playerId: playerId,
                 round_number: finalRoundNumber,
@@ -1670,12 +1696,12 @@ class GameState {
                 blank_tiles: []
             });
         }
-        
+
         // Special case for 2-player games: ALWAYS create adjustment turn for other player
         if (players.length === 2) {
             const otherPlayerId = players.find(p => p.id !== endingPlayerId).id;
             const hasAssignedTiles = tileDistribution[otherPlayerId] && tileDistribution[otherPlayerId].length > 0;
-            
+
             // ALWAYS create an adjustment turn for the other player
             let deduction = 0;
             if (hasAssignedTiles) {
@@ -1688,13 +1714,13 @@ class GameState {
                     }
                     deduction += this.letterScores[tile] || 0;
                 });
-                
+
                 // Create word from remaining tiles (filter out blanks)
                 const remainingTilesWord = tiles
                     .filter(tile => tile !== '')
                     .sort()
                     .join('');
-                
+
                 // Create adjustment turn with calculated deduction
                 adjustmentTurns.push({
                     playerId: otherPlayerId,
@@ -1727,7 +1753,7 @@ class GameState {
                 }
             }
         }
-        
+
         return adjustmentTurns;
     }
 }

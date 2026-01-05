@@ -8,13 +8,13 @@ body {
     --base-board: #4C7F9C;
     --board-borders: #C7CBD8;
     --bonus-text-color: #EBE3D1;
-    
+
     /* Bonus Square Colors */
     --tws-color: #9BA101;
     --tls-color: #CB0B44;
     --dws-color: #E3AD05;
     --dls-color: #303352;
-    
+
     /* Tile Colors */
     --default-tile: #F0ECF0;
     --default-tile-font: #1A1918;
@@ -82,8 +82,9 @@ body {
     gap: 2px;
     background-color: var(--board-borders);
     border: 4px solid var(--tile-border);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    position: relative; /* Required for absolute positioning of preview tiles */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+    /* Required for absolute positioning of preview tiles */
 }
 
 .board-cell {
@@ -105,15 +106,31 @@ body {
 }
 
 .board-cell.selected {
-    outline: 3px solid #fde047; /* yellow-300 */
+    outline: 3px solid #fde047;
+    /* yellow-300 */
     z-index: 20;
 }
 
 /* General Bonus Colors */
-.TWS { background-color: var(--tws-color); color: var(--bonus-text-color); }
-.DWS { background-color: var(--dws-color); color: var(--bonus-text-color); }
-.TLS { background-color: var(--tls-color); color: var(--bonus-text-color); }
-.DLS { background-color: var(--dls-color); color: var(--bonus-text-color); }
+.TWS {
+    background-color: var(--tws-color);
+    color: var(--bonus-text-color);
+}
+
+.DWS {
+    background-color: var(--dws-color);
+    color: var(--bonus-text-color);
+}
+
+.TLS {
+    background-color: var(--tls-color);
+    color: var(--bonus-text-color);
+}
+
+.DLS {
+    background-color: var(--dls-color);
+    color: var(--bonus-text-color);
+}
 
 .center-star {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23b4946c"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>');
@@ -133,7 +150,7 @@ body {
     border: 1px solid var(--tile-border);
     position: relative;
     text-transform: uppercase;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
     font-family: 'Arial Black', Gadget, sans-serif;
     cursor: pointer;
     font-size: clamp(10px, 2.5vw, 18px);
@@ -150,7 +167,7 @@ body {
 }
 
 #board-legend span {
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* Unified Tile Component System */
@@ -161,13 +178,14 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    border-radius: 0.25rem; /* Keep the slight rounding */
+    border-radius: 0.25rem;
+    /* Keep the slight rounding */
     color: var(--default-tile-font);
     background-color: var(--default-tile);
     border: 1px solid var(--tile-border);
     position: relative;
     text-transform: uppercase;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
     font-family: 'Arial Black', Gadget, sans-serif;
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
@@ -176,7 +194,8 @@ body {
 .tile-lg {
     width: 50px;
     height: 50px;
-    font-size: 1.75rem; /* 28px */
+    font-size: 1.75rem;
+    /* 28px */
 }
 
 .tile-md {
@@ -186,13 +205,15 @@ body {
 .tile-sm {
     width: 36px;
     height: 36px;
-    font-size: 1rem; /* 16px */
+    font-size: 1rem;
+    /* 16px */
 }
 
 .tile-xs {
     width: 30px;
     height: 30px;
-    font-size: 0.875rem; /* 14px */
+    font-size: 0.875rem;
+    /* 14px */
 }
 
 /* State modifiers - preserve existing functionality */
@@ -212,7 +233,8 @@ body {
 .tile-extension {
     background-color: var(--default-tile);
     border-color: var(--tile-border);
-    color: #6b7280; /* Gray color for extension tiles to distinguish from user's new tiles */
+    color: #6b7280;
+    /* Gray color for extension tiles to distinguish from user's new tiles */
 }
 
 .tile-conflict {
@@ -229,7 +251,8 @@ body {
 }
 
 .tile-blank .tile-score {
-    color: var(--blank-tile-font); /* Make score visible on blank tiles */
+    color: var(--blank-tile-font);
+    /* Make score visible on blank tiles */
 }
 
 /* Tile Component Classes */
@@ -262,25 +285,35 @@ body {
     font-size: 0.75rem;
     font-weight: 700;
     border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     z-index: 10;
 }
 
 /* Enhanced Blank Tile Styling */
 .tile-blank .tile-letter {
-    font-size: 0.8rem;
-    font-weight: normal;
-    color: #d1c7b8; /* Washed-out color for 'BLANK' text */
+    /* font-size: 0.8rem; Removed to match regular tiles */
+    /* font-weight: normal; Removed to match regular tiles */
+    color: #B2B2B2;
+    /* Custom color for blank tiles as requested */
     letter-spacing: 0.5px;
+}
+
+.tile.tile-sm.tile-blank .tile-letter {
+    font-size: 1rem !important;
+    font-weight: bold !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1 !important;
 }
 
 /* Size-specific positioning */
 .tile-lg .tile-letter {
-    font-size: 1.75rem; /* 28px */
+    font-size: 1.75rem;
+    /* 28px */
 }
 
 .tile-lg .tile-score {
-    font-size: 0.75rem; /* 12px */
+    font-size: 0.75rem;
+    /* 12px */
     bottom: 2px;
     right: 4px;
 }
@@ -294,11 +327,13 @@ body {
 }
 
 .tile-sm .tile-letter {
-    font-size: 1rem; /* 16px */
+    font-size: 1rem;
+    /* 16px */
 }
 
 .tile-sm .tile-score {
-    font-size: 0.6rem; /* 9.6px */
+    font-size: 0.6rem;
+    /* 9.6px */
     bottom: 1px;
     right: 2px;
 }
@@ -312,11 +347,13 @@ body {
 }
 
 .tile-xs .tile-letter {
-    font-size: 0.875rem; /* 14px */
+    font-size: 0.875rem;
+    /* 14px */
 }
 
 .tile-xs .tile-score {
-    font-size: 0.5rem; /* 8px */
+    font-size: 0.5rem;
+    /* 8px */
     bottom: 1px;
     right: 1px;
 }
@@ -406,7 +443,7 @@ body {
     background-color: var(--default-tile);
     border: 1px solid var(--tile-border);
     border-radius: 0.25rem;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
     position: relative;
     text-transform: uppercase;
     line-height: 1;
@@ -417,8 +454,15 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .real-time-tile.tile-preview {
@@ -429,12 +473,15 @@ body {
 }
 
 @keyframes pulse {
-    0%, 100% { 
-        opacity: 0.8; 
+
+    0%,
+    100% {
+        opacity: 0.8;
         transform: scale(1);
     }
-    50% { 
-        opacity: 1; 
+
+    50% {
+        opacity: 1;
         transform: scale(1.02);
     }
 }
@@ -455,16 +502,27 @@ body {
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-2px); }
-    75% { transform: translateX(2px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-2px);
+    }
+
+    75% {
+        transform: translateX(2px);
+    }
 }
 
 .real-time-tile.tile-blank {
-    background-color: var(--default-tile);
+    background-color: var(--new-tile);
     border-color: var(--tile-border);
-    color: var(--blank-tile-font);
-    animation: none;
+    color: #5F7A5E;
+    /* Lighter green for blank status (live preview) */
+    animation: fadeIn 0.2s ease-out;
 }
 
 .real-time-tile .tile-letter {
@@ -488,7 +546,7 @@ body {
     .real-time-tile {
         font-size: clamp(10px, 2.5vw, 18px);
     }
-    
+
     .real-time-tile .tile-score {
         font-size: clamp(6px, 1.5vw, 10px);
         bottom: 1px;
@@ -517,8 +575,13 @@ body {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Error states */
@@ -648,7 +711,7 @@ body.mobile-game-sheet-open {
         padding: 0.5rem;
         z-index: 1001;
     }
-    
+
     #word-validation-modal .modal-content {
         width: 95%;
         max-width: 400px;
@@ -657,36 +720,36 @@ body.mobile-game-sheet-open {
         max-height: 85vh;
         overflow-y: auto;
     }
-    
+
     #word-validation-modal .modal-header {
         margin-bottom: 1rem;
     }
-    
+
     #word-validation-modal .modal-title {
         font-size: 1.5rem;
         line-height: 1.2;
     }
-    
+
     #word-validation-modal .close-modal-btn {
         font-size: 1.25rem;
         padding: 0.125rem;
     }
-    
+
     #word-validation-modal .modal-body {
         margin-bottom: 1rem;
     }
-    
+
     #word-validation-modal .validation-message {
         font-size: 0.9rem;
         line-height: 1.4;
         margin-bottom: 1rem;
     }
-    
+
     #word-validation-modal .modal-actions {
         flex-direction: column;
         gap: 0.5rem;
     }
-    
+
     #word-validation-modal .modal-button {
         padding: 0.625rem 1.25rem;
         font-size: 0.9rem;
@@ -847,7 +910,8 @@ body.mobile-game-sheet-open {
 
 .assigned-tile {
     @apply w-8 h-8 flex items-center justify-center font-bold text-white rounded cursor-pointer transition-all duration-200;
-    background-color: #f6e5c5; /* Scrabble tile color */
+    background-color: #f6e5c5;
+    /* Scrabble tile color */
     border: 1px solid #c8a37a;
     color: #333;
     font-family: 'Arial Black', Gadget, sans-serif;
@@ -865,7 +929,8 @@ body.mobile-game-sheet-open {
 
 .pool-tile {
     @apply w-10 h-10 flex items-center justify-center font-bold text-white rounded cursor-pointer transition-all duration-200 transform hover:scale-110;
-    background-color: #f6e5c5; /* Scrabble tile color */
+    background-color: #f6e5c5;
+    /* Scrabble tile color */
     border: 1px solid #c8a37a;
     color: #333;
     font-family: 'Arial Black', Gadget, sans-serif;
@@ -896,6 +961,7 @@ body.mobile-game-sheet-open {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -906,10 +972,21 @@ body.mobile-game-sheet-open {
     animation: slideIn 0.3s ease-out forwards;
 }
 
-.score-reveal-item:nth-child(1) { animation-delay: 0.1s; }
-.score-reveal-item:nth-child(2) { animation-delay: 0.2s; }
-.score-reveal-item:nth-child(3) { animation-delay: 0.3s; }
-.score-reveal-item:nth-child(4) { animation-delay: 0.4s; }
+.score-reveal-item:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.score-reveal-item:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.score-reveal-item:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.score-reveal-item:nth-child(4) {
+    animation-delay: 0.4s;
+}
 
 /* New Table Format for Finish Game Modal */
 #tile-assignment-table {
@@ -1110,6 +1187,7 @@ body.mobile-game-sheet-open {
     transition: all 0.2s;
     margin-bottom: 1rem;
 }
+
 #tile-recipient-list .player-card.selected {
     border-color: #4f46e5;
     box-shadow: 0 0 0 2px #c7d2fe;
@@ -1130,7 +1208,8 @@ body.mobile-game-sheet-open {
 .player-card-header .score-deduction {
     font-weight: 700;
     font-size: 1.125rem;
-    color: #ef4444; /* red-500 */
+    color: #ef4444;
+    /* red-500 */
 }
 
 .assigned-tiles-container {
@@ -1151,7 +1230,7 @@ body.mobile-game-sheet-open {
 }
 
 /* Apply consistent tile styling to leftover tiles grid */
-#leftover-tiles-grid > div:nth-child(3) {
+#leftover-tiles-grid>div:nth-child(3) {
     width: 36px;
     height: 36px;
     display: flex;
@@ -1164,9 +1243,10 @@ body.mobile-game-sheet-open {
     border: 1px solid var(--tile-border);
     position: relative;
     text-transform: uppercase;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
     font-family: 'Arial Black', Gadget, sans-serif;
-    font-size: 1rem; /* 16px */
+    font-size: 1rem;
+    /* 16px */
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -1181,7 +1261,7 @@ body.mobile-game-sheet-open {
 }
 
 /* Apply consistent tile styling to tile inventory modal */
-#tile-inventory-modal #tile-inventory-grid > div:nth-child(3) {
+#tile-inventory-modal #tile-inventory-grid>div:nth-child(3) {
     width: 36px;
     height: 36px;
     display: flex;
@@ -1194,9 +1274,10 @@ body.mobile-game-sheet-open {
     border: 1px solid var(--tile-border);
     position: relative;
     text-transform: uppercase;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
     font-family: 'Arial Black', Gadget, sans-serif;
-    font-size: 1rem; /* 16px */
+    font-size: 1rem;
+    /* 16px */
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -1207,25 +1288,26 @@ body.mobile-game-sheet-open {
 }
 
 /* Apply blank tile styling to both grids */
-#leftover-tiles-grid > div:nth-child(3).tile-inventory-blank,
-#tile-inventory-modal #tile-inventory-grid > div:nth-child(3).tile-inventory-blank {
+#leftover-tiles-grid>div:nth-child(3).tile-inventory-blank,
+#tile-inventory-modal #tile-inventory-grid>div:nth-child(3).tile-inventory-blank {
     color: var(--blank-tile-font);
 }
 
 /* Apply score positioning to both grids */
-#leftover-tiles-grid > div:nth-child(3) .tile-score,
-#tile-inventory-modal #tile-inventory-grid > div:nth-child(3) .tile-score {
+#leftover-tiles-grid>div:nth-child(3) .tile-score,
+#tile-inventory-modal #tile-inventory-grid>div:nth-child(3) .tile-score {
     position: absolute;
     bottom: 1px;
     right: 2px;
-    font-size: 0.6rem; /* 9.6px */
+    font-size: 0.6rem;
+    /* 9.6px */
     font-weight: normal;
     color: var(--default-tile-font);
     font-family: 'Inter', sans-serif;
 }
 
-#leftover-tiles-grid > div:nth-child(3).tile-inventory-blank .tile-score,
-#tile-inventory-modal #tile-inventory-grid > div:nth-child(3).tile-inventory-blank .tile-score {
+#leftover-tiles-grid>div:nth-child(3).tile-inventory-blank .tile-score,
+#tile-inventory-modal #tile-inventory-grid>div:nth-child(3).tile-inventory-blank .tile-score {
     color: var(--blank-tile-font);
 }
 
@@ -1235,7 +1317,7 @@ body.mobile-game-sheet-open {
     position: relative;
     background-color: var(--default-tile);
     border: 1px solid var(--tile-border);
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
     color: var(--default-tile-font);
     aspect-ratio: 1 / 1;
     display: flex;
@@ -1247,13 +1329,35 @@ body.mobile-game-sheet-open {
     width: 36px;
     height: 36px;
     font-weight: bold;
-    font-size: 1rem; /* 16px */
+    font-size: 1rem;
+    /* 16px */
     text-transform: uppercase;
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
-.finish-game-tile .letter { font-weight: 700; font-size: 1rem; }
-.finish-game-tile .points { font-size: 0.6rem; font-weight: 600; position: absolute; bottom: 1px; right: 2px; font-family: 'Inter', sans-serif; color: var(--default-tile-font); }
-.finish-game-tile .count { font-size: 0.875rem; font-weight: 500; color: #8b5cf6; position: absolute; top: 2px; right: 5px; }
+
+.finish-game-tile .letter {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.finish-game-tile .points {
+    font-size: 0.6rem;
+    font-weight: 600;
+    position: absolute;
+    bottom: 1px;
+    right: 2px;
+    font-family: 'Inter', sans-serif;
+    color: var(--default-tile-font);
+}
+
+.finish-game-tile .count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #8b5cf6;
+    position: absolute;
+    top: 2px;
+    right: 5px;
+}
 
 /* Override finish-game-tile for tile inventory modal (more specific selector) */
 #tile-inventory-modal .finish-game-tile.finish-game-tile {
@@ -1319,7 +1423,7 @@ body.mobile-game-sheet-open {
 }
 
 /* Even more specific override for blank tiles in leftover grid */
-#leftover-tiles-grid button.finish-game-tile.tile-blank > span.tile-letter {
+#leftover-tiles-grid button.finish-game-tile.tile-blank>span.tile-letter {
     font-size: 0.5rem !important;
     font-weight: normal !important;
     letter-spacing: 0.5px !important;
@@ -1341,38 +1445,23 @@ body.mobile-game-sheet-open {
     color: var(--blank-tile-font) !important;
 }
 
-/* Fix blank tile text overflow in tile component system */
-.tile.tile-sm.tile-blank .tile-letter {
-    font-size: 0.5rem !important;
-    font-weight: normal !important;
-    letter-spacing: 0.5px !important;
-    line-height: 1 !important;
+
+
+.finish-game-tile-sm {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
 }
 
-/* Override blank tile font size and line height */
-.tile.tile-sm.tile-blank {
-    font-size: 0.5rem !important;
-    line-height: 1 !important;
+.finish-game-tile-sm .letter {
+    font-size: 1rem;
 }
 
-/* Apply blank tile fixes to both modal contexts */
-#tile-inventory-modal .tile.tile-sm.tile-blank .tile-letter,
-#leftover-tiles-grid .tile.tile-sm.tile-blank .tile-letter {
-    font-size: 0.5rem !important;
-    font-weight: normal !important;
-    letter-spacing: 0.5px !important;
-    line-height: 1 !important;
+.finish-game-tile-sm .points {
+    font-size: 0.6rem;
+    bottom: 2px;
+    right: 3px;
 }
-
-#tile-inventory-modal .tile.tile-sm.tile-blank,
-#leftover-tiles-grid .tile.tile-sm.tile-blank {
-    font-size: 0.5rem !important;
-    line-height: 1 !important;
-}
-
-.finish-game-tile-sm { width: 36px; height: 36px; flex-shrink: 0; }
-.finish-game-tile-sm .letter { font-size: 1rem; }
-.finish-game-tile-sm .points { font-size: 0.6rem; bottom: 2px; right: 3px; }
 
 /* Final Scores List */
 #final-scores-list .score-item {
@@ -1385,11 +1474,18 @@ body.mobile-game-sheet-open {
 }
 
 #final-scores-list .score-item.winner {
-    background-color: #fef3c7; /* amber-100 */
+    background-color: #fef3c7;
+    /* amber-100 */
 }
 
-#final-scores-list .player-name { font-weight: 500; }
-#final-scores-list .player-score { font-weight: 700; font-size: 1.125rem; }
+#final-scores-list .player-name {
+    font-weight: 500;
+}
+
+#final-scores-list .player-score {
+    font-weight: 700;
+    font-size: 1.125rem;
+}
 
 /* Modal button styles */
 .modal-button {

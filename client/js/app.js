@@ -15,13 +15,13 @@ class ScrabbleApp {
         this.currentGameLoaded = false;
         this.dictionaryEnabled = false;
         this.dictionaryToggleSyncing = false;
-        
+
         // Phase 6 Fix: Initialize Real-Time Tile Placement system
         this.wordPreview = null; // Removed - using direct tile placement
         this.wordPreviewEnabled = false;
         this.realTimeTilePlacement = null; // New Real-Time Tile Placement system
         this.realTimeTilePlacementEnabled = false;
-        
+
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.init());
@@ -32,13 +32,13 @@ class ScrabbleApp {
 
     async init() {
         console.log('Scrabble App: Initializing...');
-        
+
         // Get DOM elements
         this.setupElements();
         this.setupPlayerAutocomplete();
         this.attachNameInputHandlers();
         this.initializeDictionaryPreference();
-        
+
         // Phase 6 Fix: Initialize Real-Time Tile Placement system
         console.log('Scrabble App: Initializing Real-Time Tile Placement system');
         this.realTimeTilePlacement = new RealTimeTilePlacement(this.boardContainer, window.gameState);
@@ -46,13 +46,13 @@ class ScrabbleApp {
         if (!this.realTimeTilePlacementEnabled) {
             console.error('Scrabble App: Failed to initialize Real-Time Tile Placement system');
         }
-        
+
         // Register service worker
         await this.registerServiceWorker();
-        
+
         // Setup event listeners
         this.setupEventListeners();
-        
+
         // Lifecycle listeners to preserve game state
         window.addEventListener('beforeunload', () => this.markGameAsInterrupted());
         document.addEventListener('visibilitychange', () => {
@@ -60,11 +60,11 @@ class ScrabbleApp {
                 this.markGameAsInterrupted();
             }
         });
-        
+
         // Check for existing game in URL or localStorage
         await this.checkForExistingGame();
         this.updateResumeButtonVisibility();
-        
+
         console.log('Scrabble App: Initialization complete');
     }
 
@@ -72,14 +72,14 @@ class ScrabbleApp {
         // Screens
         this.setupScreen = document.getElementById('setup-screen');
         this.gameScreen = document.getElementById('game-screen');
-        
+
         // Setup screen elements
         this.playerNameInputs = document.querySelectorAll('.player-name-input');
         this.startGameBtn = document.getElementById('start-game-btn');
         this.dictionaryToggle = document.getElementById('dictionary-toggle');
         this.loadLatestActiveBtn = document.getElementById('load-latest-active-btn');
         this.playerNameHelper = document.getElementById('player-name-helper');
-        
+
         // Game screen elements
         this.playersScoresContainer = document.getElementById('players-scores');
         this.runtimeDictionaryToggle = document.getElementById('dictionary-runtime-toggle');
@@ -91,7 +91,7 @@ class ScrabbleApp {
         this.gameActionsContainer = document.getElementById('game-actions-container');
         this.gameActionsButton = document.getElementById('game-actions-button');
         this.gameActionsMenu = document.getElementById('game-actions-menu');
-        
+
         // Tile countdown and modal elements
         this.tileCountdownBtn = document.getElementById('tile-countdown-btn');
         this.tileCountdownValue = document.getElementById('tile-countdown-value');
@@ -105,15 +105,15 @@ class ScrabbleApp {
         this.wordEntryContainer = document.getElementById('word-entry-container');
         this.dirAcrossBtn = document.getElementById('dir-across');
         this.dirDownBtn = document.getElementById('dir-down');
-        
+
         // Word input elements
         this.wordInput = document.getElementById('word-input');
         this.tileDisplayContainer = document.getElementById('tile-display-container');
-        
+
         // Score elements
         this.turnScoreDisplay = document.getElementById('turn-score');
         this.scoreBreakdownContainer = document.getElementById('score-breakdown');
-        
+
         // Action buttons
         this.submitTurnBtn = document.getElementById('submit-turn-btn');
         this.cancelTurnBtn = document.getElementById('cancel-turn-btn'); // New cancel button
@@ -121,12 +121,12 @@ class ScrabbleApp {
         this.endGameBtn = document.getElementById('end-game-btn');
         this.pauseGameBtn = document.getElementById('pause-game-btn');
         this.abandonGameBtn = document.getElementById('abandon-game-btn');
-        
+
         // Modals
         this.endGameModal = document.getElementById('end-game-modal');
         this.finalScoresContainer = document.getElementById('final-scores');
         this.newGameBtn = document.getElementById('new-game-btn');
-        
+
         // Finish game modal
         this.finishGameModal = document.getElementById('finish-game-modal');
         this.closeFinishGameBtn = document.getElementById('close-finish-game-btn');
@@ -138,18 +138,18 @@ class ScrabbleApp {
         this.finishStep1Next = document.getElementById('finish-and-calculate-btn');
         this.finishStep2Back = document.getElementById('finish-step-2-back');
         this.finishStep2Finish = document.getElementById('finish-and-calculate-btn');
-        
+
         this.statsModal = document.getElementById('stats-modal');
         this.closeStatsBtn = document.getElementById('close-stats-btn');
         this.generalStatsContainer = document.getElementById('general-stats');
         this.playerHistoryContainer = document.getElementById('player-history-container');
-        
+
         // Word validation modal
         this.wordValidationModal = document.getElementById('word-validation-modal');
         this.validationMessage = document.getElementById('validation-message');
         this.validationCancelBtn = document.getElementById('validation-cancel-btn');
         this.validationProceedBtn = document.getElementById('validation-proceed-btn');
-        
+
         // Help modal
         this.helpModal = document.getElementById('help-modal');
         this.helpMenuBtn = document.getElementById('help-menu-btn');
@@ -190,24 +190,29 @@ class ScrabbleApp {
                     if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
                         this.realTimeTilePlacement.stopPlacement();
                     }
-                    
+
                     // Also cancel the current turn since backdrop click should cancel the operation
                     this.handleCancelTurn();
                 }
             });
         }
         this.registerMobileMediaListener();
-        
+
         // Board interaction
         this.boardContainer.addEventListener('click', (e) => this.handleBoardClick(e));
-        
+
         // Direction selection
         this.dirAcrossBtn.addEventListener('click', () => this.handleDirectionChange('across'));
         this.dirDownBtn.addEventListener('click', () => this.handleDirectionChange('down'));
-        
+
         // Word input
         this.wordInput.addEventListener('input', () => this.handleWordInput());
-        
+        this.wordInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                this.wordInput.blur();
+            }
+        });
+
         // Action buttons
         this.submitTurnBtn.addEventListener('click', () => this.handleSubmitTurn());
         this.cancelTurnBtn.addEventListener('click', () => this.handleCancelTurn()); // New cancel button listener
@@ -219,7 +224,7 @@ class ScrabbleApp {
         if (this.abandonGameBtn) {
             this.abandonGameBtn.addEventListener('click', () => this.handleAbandonGame());
         }
-        
+
         // Modal buttons
         this.newGameBtn.addEventListener('click', () => this.handleNewGame());
         this.closeStatsBtn.addEventListener('click', () => this.closeStatsModal());
@@ -240,14 +245,14 @@ class ScrabbleApp {
                 }
             });
         }
-        
+
         // Player cards (for stats)
         this.playersScoresContainer.addEventListener('click', (e) => {
             if (e.target.closest('.player-card')) {
                 this.showStatsModal();
             }
         });
-        
+
         // Modal close on backdrop click
         this.statsModal.addEventListener('click', (e) => {
             if (e.target === this.statsModal) {
@@ -292,12 +297,12 @@ class ScrabbleApp {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 // If there's an active tile placement, cancel it
-                if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled && 
+                if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled &&
                     this.realTimeTilePlacement.isActive) {
                     console.log('Scrabble App: Escape key pressed - canceling tile placement');
                     this.handleCancelTurn();
                 }
-                
+
                 // Close any open modals
                 this.closeAllModals();
             }
@@ -570,14 +575,14 @@ class ScrabbleApp {
         const urlParams = new URLSearchParams(window.location.search);
         const gameId = urlParams.get('game');
         const viewMode = urlParams.get('view'); // 'history' or 'pause'
-        
+
         if (gameId) {
             try {
                 const gameData = await window.scrabbleAPI.getGame(gameId);
-                
+
                 // Set read-only mode for historical games or when explicitly viewing
                 const isReadOnly = gameData.status === 'finished' || viewMode === 'history';
-                
+
                 await this.loadGame(gameData, isReadOnly);
                 return;
             } catch (error) {
@@ -585,7 +590,7 @@ class ScrabbleApp {
                 this.showError('Failed to load game. Please try again.');
             }
         }
-        
+
         // Check localStorage for active game (only if no URL game specified)
         if (!gameId) {
             const savedGameId = localStorage.getItem('scrabble_current_game');
@@ -606,24 +611,24 @@ class ScrabbleApp {
 
     async handleStartGame() {
         const { names, hasDuplicate } = this.refreshNameValidation();
-        
+
         if (hasDuplicate || names.length < 2 || names.length > 4) {
             return;
         }
-        
+
         try {
             this.setLoading(this.startGameBtn, true);
             const gameData = await window.scrabbleAPI.createGame(names);
             await this.loadGame(gameData);
-            
+
             // Save game ID
             localStorage.setItem('scrabble_current_game', gameData.id.toString());
-            
+
             // Update URL
             const url = new URL(window.location);
             url.searchParams.set('game', gameData.id);
             window.history.pushState({}, '', url);
-            
+
         } catch (error) {
             console.error('Failed to create game:', error);
             this.showError('Failed to create game. Please try again.');
@@ -637,7 +642,7 @@ class ScrabbleApp {
         this.isReadOnly = isReadOnly;
         this.currentGameLoaded = !isReadOnly;
         this.applyGameDictionaryPreference(gameData.id);
-        
+
         if (!isReadOnly) {
             localStorage.setItem(ACTIVE_GAME_STORAGE_KEY, gameData.id.toString());
             localStorage.removeItem(LAST_INTERRUPTED_STORAGE_KEY);
@@ -675,7 +680,7 @@ class ScrabbleApp {
             if (this.endGameBtn) this.endGameBtn.classList.add('hidden');
             if (this.pauseGameBtn) this.pauseGameBtn.classList.add('hidden');
             if (this.abandonGameBtn) this.abandonGameBtn.classList.add('hidden');
-            
+
             // Show read-only message
             const readOnlyMessage = document.createElement('div');
             readOnlyMessage.id = 'read-only-message';
@@ -688,26 +693,26 @@ class ScrabbleApp {
                     <a href="/history.html" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">Back to History</a>
                 </div>
             `;
-            
+
             // Insert the message where the turn controls would be
             const scoringControls = document.getElementById('scoring-controls');
             const turnFlowContainer = document.getElementById('turn-flow-container');
             turnFlowContainer.innerHTML = '';
             turnFlowContainer.appendChild(readOnlyMessage);
-            
+
             // Disable board interactions
             this.boardContainer.style.pointerEvents = 'none';
-            
+
         } else {
             // Remove read-only message if it exists
             const existingMessage = document.getElementById('read-only-message');
             if (existingMessage) {
                 existingMessage.remove();
             }
-            
+
             // Re-enable board interactions
             this.boardContainer.style.pointerEvents = 'auto';
-            
+
             // Show interactive elements
             this.submitTurnBtn.classList.remove('hidden');
             // Old undoBtn logic removed, new topbarUndoBtn visibility handled by updateCancelAndUndoButtonVisibility
@@ -732,20 +737,21 @@ class ScrabbleApp {
 
     renderBoard() {
         this.boardContainer.innerHTML = '';
-        
+
         window.gameState.boardLayout.forEach((row, r_idx) => {
             row.forEach((bonus, c_idx) => {
                 const cell = document.createElement('div');
                 cell.dataset.row = r_idx;
                 cell.dataset.col = c_idx;
                 cell.classList.add('board-cell');
-                
+
                 const placedTile = window.gameState.boardState[r_idx][c_idx];
 
                 if (placedTile) {
                     cell.classList.add('tile-placed');
                     const score = placedTile.isBlank ? 0 : (window.gameState.letterScores[placedTile.letter] || 0);
-                    cell.innerHTML = `<span>${placedTile.letter}</span><span class="tile-score">${score}</span>`;
+                    const letterStyle = placedTile.isBlank ? 'style="color: #B2B2B2;"' : '';
+                    cell.innerHTML = `<span ${letterStyle}>${placedTile.letter}</span><span class="tile-score">${score}</span>`;
                 } else {
                     if (bonus) cell.classList.add(bonus);
                     if (r_idx === 7 && c_idx === 7) cell.classList.add('center-star');
@@ -759,12 +765,12 @@ class ScrabbleApp {
     handleBoardClick(e) {
         const cell = e.target.closest('.board-cell');
         if (!cell) return;
-        
+
         // Phase 1 Fix: Clean up existing tile placement before starting new one
         if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
             this.realTimeTilePlacement.stopPlacement();
         }
-        
+
         // In mobile view, if sheet is already open, close it and don't process the click
         if (!this.isReadOnly && this.isMobileLayout()) {
             if (this.isMobileSheetOpen()) {
@@ -773,33 +779,33 @@ class ScrabbleApp {
             }
             this.openMobileSheet();
         }
-        
+
         // Clear previous selection
         document.querySelectorAll('.board-cell.selected').forEach(c => c.classList.remove('selected'));
         cell.classList.add('selected');
-        
+
         // Step 1: Set Start Position
         window.gameState.selectedCell.row = parseInt(cell.dataset.row, 10);
         window.gameState.selectedCell.col = parseInt(cell.dataset.col, 10);
         window.gameState.wordDirection = null;
-        
+
         // Clear word input and current word
         this.wordInput.value = '';
         this.currentWord = '';
         window.gameState.blankTileIndices.clear();
-        
+
         // Phase 6 Fix: Stop any existing Real-Time Tile Placement when selecting new cell
         console.log('Scrabble App: Clearing previous tile placement state');
         // Word Preview system removed - using direct tile placement
-        
+
         // Update UI flow - Show Step 2: Choose Direction
         this.startPrompt.classList.add('hidden');
         this.directionContainer.classList.remove('hidden'); // Show direction buttons
         this.wordEntryContainer.classList.add('hidden'); // Keep word entry hidden
-        
+
         // Reset direction buttons visuals
         this.resetDirectionButtons();
-        
+
         // Clear tile display
         this.updateTurnState();
     }
@@ -814,7 +820,7 @@ class ScrabbleApp {
         if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
             this.realTimeTilePlacement.stopPlacement();
         }
-        
+
         const isReselecting = window.gameState.wordDirection === newDirection;
         window.gameState.wordDirection = newDirection;
 
@@ -825,22 +831,22 @@ class ScrabbleApp {
             this.dirDownBtn.className = 'w-1/2 rounded-md py-2 text-sm font-semibold bg-indigo-500 text-white';
             this.dirAcrossBtn.className = 'w-1/2 rounded-md py-2 text-sm font-semibold bg-gray-200 text-gray-600';
         }
-        
+
         if (!isReselecting) {
             // Step 2: Set Direction - Now proceed to Step 3: Enter Word
-            
+
             // Hide direction UI and show word entry UI
             this.directionContainer.classList.add('hidden');
             this.wordEntryContainer.classList.remove('hidden');
-            
+
             // Clear word input and current word
             this.wordInput.value = '';
             this.currentWord = '';
             this.currentWordTemplate = null;
-            
+
             // Clear blank tile indices
             window.gameState.blankTileIndices.clear();
-            
+
             // Phase 6 Fix: Start Real-Time Tile Placement when direction is selected
             console.log('Scrabble App: Starting Real-Time Tile Placement with direction:', newDirection);
             if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
@@ -850,21 +856,21 @@ class ScrabbleApp {
                     newDirection
                 );
             }
-            
+
             // Check if start position has an existing tile and pre-fill it
             const existingTile = window.gameState.boardState[window.gameState.selectedCell.row][window.gameState.selectedCell.col];
             if (existingTile) {
                 // Pre-fill with existing tile letter
                 this.wordInput.value = existingTile.letter;
                 this.currentWord = existingTile.letter;
-                
+
                 // Place cursor at the end for continued typing
                 setTimeout(() => {
                     this.wordInput.focus();
                     this.wordInput.setSelectionRange(this.wordInput.value.length, this.wordInput.value.length);
                 }, 10);
             }
-            
+
             // Update turn state to show the pre-filled tile
             this.updateTurnState();
         }
@@ -919,16 +925,16 @@ class ScrabbleApp {
         const rawInput = this.wordInput.value.toUpperCase().replace(/[^A-Z]/g, '');
         this.wordInput.value = rawInput;
         this.currentWord = rawInput;
-        
+
         // Phase 6 Fix: Update Real-Time Tile Placement in real-time as user types
         console.log('Scrabble App: Updating Real-Time Tile Placement with word:', this.currentWord);
         if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
             this.realTimeTilePlacement.handleWordInput(this.currentWord);
         }
-        
+
         // --- Start of Debugging Block ---
         const existingWord = this.getExistingWordAtPosition();
-        
+
         console.clear(); // Clears the console on each new input for readability
         console.log(`Input Word: ${this.currentWord}`);
         console.log(`Existing Word: ${existingWord}`);
@@ -937,14 +943,14 @@ class ScrabbleApp {
             const startIndex = this.currentWord.indexOf(existingWord);
             const hasLettersBefore = startIndex > 0;
             const hasLettersAfter = (startIndex + existingWord.length) < this.currentWord.length;
-            
+
             console.log(`Start Index of Existing Word: ${startIndex}`);
             console.log(`Has letters before? ${hasLettersBefore}`);
             console.log(`Has letters after? ${hasLettersAfter}`);
             console.log(`Is this an invalid move? ${hasLettersBefore && hasLettersAfter}`);
         }
         // --- End of Debugging Block ---
-        
+
         // Update turn state with the user's input
         this.updateTurnState();
     }
@@ -953,7 +959,7 @@ class ScrabbleApp {
         // Phase 1 Fix: Implement state synchronization to prevent race conditions
         // Clear any existing validation error states first
         this.clearValidationStates();
-        
+
         // Calculate turn score with comprehensive error handling
         let score, breakdown;
         try {
@@ -971,18 +977,18 @@ class ScrabbleApp {
             score = 0;
             breakdown = { error: 'Error calculating score', newPlacements: [], secondaryWords: [] };
         }
-        
+
         // Automatically activate bingo if eligible
         this.bingoActive = breakdown.eligibleForBingo;
 
         // Use the score as calculated by calculateTurnScore (bingo bonus already included if eligible)
         const finalScore = score;
-        
+
         // Check tile availability for UI feedback
         if (breakdown.newPlacements && breakdown.newPlacements.length > 0) {
             try {
                 const tileValidation = window.gameState.validateTileAvailability(
-                    breakdown.newPlacements, 
+                    breakdown.newPlacements,
                     window.gameState.blankTileIndices
                 );
                 breakdown.tileConflicts = tileValidation.tileConflicts;
@@ -992,7 +998,7 @@ class ScrabbleApp {
                 breakdown.tileError = 'Error validating tiles';
             }
         }
-        
+
         // Apply word formation validation with proper error handling
         try {
             const wordFormationValidation = this.validateWordFormation();
@@ -1003,14 +1009,19 @@ class ScrabbleApp {
             console.error('Error in word formation validation:', error);
             breakdown.error = 'Error validating word formation';
         }
-        
+
         // Store breakdown for use in updateTileDisplay
         window.gameState.lastBreakdown = breakdown;
-        
+
         // Update UI components in a deterministic order
         this.updateScoreDisplay(finalScore);
         this.renderScoreBreakdown(breakdown);
         this.updateTileDisplay(breakdown.tileConflicts);
+
+        // Force update of real-time tiles to reflect any blank tile changes
+        if (this.realTimeTilePlacement) {
+            this.realTimeTilePlacement.updateTiles(this.currentWord);
+        }
 
         // Phase 1 Fix: Deterministic submit button visibility logic
         this.updateSubmitButtonVisibility(breakdown);
@@ -1025,7 +1036,7 @@ class ScrabbleApp {
             validationResult.innerHTML = '';
             validationResult.classList.add('hidden');
         }
-        
+
         // Clear any error states in the breakdown
         if (window.gameState && window.gameState.lastBreakdown) {
             window.gameState.lastBreakdown.error = null;
@@ -1043,27 +1054,27 @@ class ScrabbleApp {
     // Phase 1 Fix: Critical fix for submit button visibility - require new tile placements
     updateSubmitButtonVisibility(breakdown) {
         if (!this.submitTurnBtn) return;
-        
+
         // Calculate submit button visibility deterministically
         const hasValidWord = this.currentWord && this.currentWord.length > 0;
         const hasValidDirection = window.gameState && window.gameState.wordDirection;
-        const hasValidPosition = window.gameState && window.gameState.selectedCell && 
-                               window.gameState.selectedCell.row !== null && 
-                               window.gameState.selectedCell.col !== null;
-        
+        const hasValidPosition = window.gameState && window.gameState.selectedCell &&
+            window.gameState.selectedCell.row !== null &&
+            window.gameState.selectedCell.col !== null;
+
         // Phase 1 Fix: CRITICAL - Only allow submit if NEW tiles are being placed
         // This prevents submitting existing words without new tiles
         let hasNewPlacements = false;
         if (breakdown && breakdown.newPlacements) {
             hasNewPlacements = breakdown.newPlacements.some(p => p.isNew);
         }
-        
+
         const hasErrors = breakdown && (breakdown.error || breakdown.tileError);
-        
+
         // Phase 1 Fix: ENFORCE NEW TILE PLACEMENT RULE - Must place at least one new tile
-        const canSubmit = hasValidWord && hasValidDirection && hasValidPosition && 
-                         hasNewPlacements && !hasErrors;
-        
+        const canSubmit = hasValidWord && hasValidDirection && hasValidPosition &&
+            hasNewPlacements && !hasErrors;
+
         // Phase 1 Fix: Enhanced debugging logging with new tile placement validation
         console.log('=== SUBMIT BUTTON VISIBILITY DEBUG ===');
         console.log('Current Word:', this.currentWord);
@@ -1078,7 +1089,7 @@ class ScrabbleApp {
         console.log('Can Submit:', canSubmit);
         console.log('Submit Button Classes:', this.submitTurnBtn.className);
         console.log('Submit Button Disabled:', this.submitTurnBtn.disabled);
-        
+
         // Phase 1 Fix: Add detailed reasoning for submit button state
         if (!hasValidWord) {
             console.log('❌ BLOCKED: No valid word entered');
@@ -1094,7 +1105,7 @@ class ScrabbleApp {
             console.log('✅ ALLOWED: All conditions met for submission');
         }
         console.log('=== END DEBUG ===');
-        
+
         // Update submit button visibility
         if (canSubmit) {
             this.submitTurnBtn.classList.remove('hidden');
@@ -1109,38 +1120,38 @@ class ScrabbleApp {
 
     // Phase 1 Fix: New method to detect if user is extending an existing word
     isExtendingExistingWord() {
-        if (!window.gameState || !window.gameState.selectedCell || 
-            window.gameState.selectedCell.row === null || 
+        if (!window.gameState || !window.gameState.selectedCell ||
+            window.gameState.selectedCell.row === null ||
             window.gameState.selectedCell.col === null) {
             return false;
         }
-        
+
         const { row, col } = window.gameState.selectedCell;
         const existingTile = window.gameState.boardState[row][col];
-        
+
         // If we clicked on an existing tile and have a valid word, we're extending
         return existingTile && this.currentWord && this.currentWord.length > 0;
     }
 
     updateTileDisplay(tileConflicts = null) {
         this.tileDisplayContainer.innerHTML = '';
-        
+
         // Get the complete word from scoring breakdown if available
         let displayWord = this.currentWord;
-        
+
         // NEW: Check if we can extend the word by connecting to an existing tile
         let extensionLetter = null;
         let extensionPosition = -1;
-        
-        if (window.gameState && window.gameState.selectedCell.row !== null && 
+
+        if (window.gameState && window.gameState.selectedCell.row !== null &&
             window.gameState.wordDirection && this.currentWord && this.currentWord.length > 0) {
-            
+
             // Calculate position immediately after the last letter of the user's input
-            const afterRow = window.gameState.wordDirection === 'across' ? 
+            const afterRow = window.gameState.wordDirection === 'across' ?
                 window.gameState.selectedCell.row : window.gameState.selectedCell.row + this.currentWord.length;
-            const afterCol = window.gameState.wordDirection === 'across' ? 
+            const afterCol = window.gameState.wordDirection === 'across' ?
                 window.gameState.selectedCell.col + this.currentWord.length : window.gameState.selectedCell.col;
-            
+
             // Check if there's an existing tile at that extension position
             if (afterRow < 15 && afterCol < 15) {
                 const existingTile = window.gameState.boardState[afterRow][afterCol];
@@ -1151,21 +1162,21 @@ class ScrabbleApp {
                 }
             }
         }
-        
+
         // Determine the final word to display (user input + any extension)
         if (extensionLetter !== null && extensionPosition === this.currentWord.length) {
             // Extend the display word to include the connected existing tile
             displayWord = this.currentWord + extensionLetter;
             console.log('updateTileDisplay: Word extension detected - showing extended word:', displayWord, 'instead of user input:', this.currentWord, 'extension:', extensionLetter, 'at position:', extensionPosition);
         }
-        
+
         // Use the scoring breakdown word if available, otherwise use the display word (user input + extension)
         let finalWord = displayWord;
         if (window.gameState && window.gameState.lastBreakdown && window.gameState.lastBreakdown.mainWord && window.gameState.lastBreakdown.mainWord.word) {
             finalWord = window.gameState.lastBreakdown.mainWord.word;
             console.log('updateTileDisplay: Using complete word from last breakdown:', finalWord, 'instead of calculated display word:', displayWord);
         }
-        
+
         if (window.gameState.selectedCell.row === null || !finalWord) return;
 
         // Create a map of conflicting tiles for quick lookup
@@ -1179,31 +1190,31 @@ class ScrabbleApp {
         // Display tiles based on the final word (including any extension)
         for (let i = 0; i < finalWord.length; i++) {
             const letter = finalWord[i];
-            const row = window.gameState.wordDirection === 'across' ? 
+            const row = window.gameState.wordDirection === 'across' ?
                 window.gameState.selectedCell.row : window.gameState.selectedCell.row + i;
-            const col = window.gameState.wordDirection === 'across' ? 
+            const col = window.gameState.wordDirection === 'across' ?
                 window.gameState.selectedCell.col + i : window.gameState.selectedCell.col;
 
             // Skip if we're off the board
             if (row >= 15 || col >= 15) continue;
 
             const tile = document.createElement('div');
-            tile.classList.add('tile', 'tile-lg');
+            tile.classList.add('tile', 'tile-sm');
             tile.dataset.index = i;
 
             let score = window.gameState.letterScores[letter] || 0;
             let isBlank = window.gameState.blankTileIndices.has(i);
-            
+
             // Determine if this tile is part of the extension
             const isExtensionTile = (i >= this.currentWord.length && extensionLetter !== null);
-            
+
             // Create letter span
             const letterSpan = document.createElement('span');
             letterSpan.className = 'tile-letter';
-            
+
             // Check if there's an existing tile at this position
             const existingTile = window.gameState.boardState[row][col];
-            
+
             if (existingTile) {
                 // There's an existing tile at this position
                 if (existingTile.letter === letter) {
@@ -1232,22 +1243,31 @@ class ScrabbleApp {
                 // No existing tile at this position - this is a new tile placement
                 const tileLetter = isBlank ? 'BLANK' : letter;
                 const hasTileConflict = conflictMap.has(tileLetter);
-                
+
                 if (hasTileConflict) {
                     tile.classList.add('tile-conflict');
                     tile.title = `Not enough ${tileLetter} tiles in bag (need ${conflictMap.get(tileLetter).needed}, have ${conflictMap.get(tileLetter).available})`;
                 } else {
                     tile.classList.add('tile-new');
                 }
-                
-                letterSpan.textContent = isBlank ? 'BLANK' : letter;
-                
+
                 // Add click handler for blank tiles (only for non-extension tiles)
-                if (isBlank && !isExtensionTile) {
-                    tile.classList.add('tile-blank');
-                    score = 0;
-                    
+                if (!isExtensionTile) {
+                    // Make it pointer-interactive
+                    tile.style.cursor = 'pointer';
+
+                    // Always show the letter, regardless of blank status
+                    letterSpan.textContent = letter;
+
+                    if (isBlank) {
+                        tile.classList.add('tile-blank');
+                        // Apply custom color for blank tiles as requested
+                        letterSpan.style.color = '#B2B2B2';
+                        score = 0;
+                    }
+
                     tile.addEventListener('click', () => {
+                        console.log('Tile clicked:', i, 'Current blank:', window.gameState.blankTileIndices.has(i));
                         if (window.gameState.blankTileIndices.has(i)) {
                             window.gameState.blankTileIndices.delete(i);
                         } else {
@@ -1255,6 +1275,9 @@ class ScrabbleApp {
                         }
                         this.updateTurnState();
                     });
+                } else {
+                    // For extension tiles, just set the text content
+                    letterSpan.textContent = isBlank ? 'BLANK' : letter;
                 }
             }
 
@@ -1262,10 +1285,10 @@ class ScrabbleApp {
             const scoreSpan = document.createElement('span');
             scoreSpan.className = 'tile-score';
             scoreSpan.textContent = score;
-            
+
             tile.appendChild(letterSpan);
             tile.appendChild(scoreSpan);
-            
+
             this.tileDisplayContainer.appendChild(tile);
         }
     }
@@ -1284,7 +1307,7 @@ class ScrabbleApp {
     // Helper method to check if an existing tile is part of a cross-word
     isExistingTilePartOfCrossWord(row, col, allScoredWords) {
         if (!allScoredWords) return false;
-        
+
         for (const wordData of allScoredWords) {
             if (!wordData.isPrimary) {
                 // This is a secondary/cross-word
@@ -1336,11 +1359,11 @@ class ScrabbleApp {
 
     async handleSubmitTurn() {
         if (this.isSubmitting) return;
-        
+
         try {
             this.isSubmitting = true;
             this.setLoading(this.submitTurnBtn, true);
-            
+
             // Validate turn placement
             const validation = window.gameState.validateTurnPlacement(
                 this.currentWord,
@@ -1349,15 +1372,15 @@ class ScrabbleApp {
                 window.gameState.wordDirection,
                 window.gameState.blankTileIndices
             );
-            
+
             if (!validation.valid) {
                 this.showError(validation.error);
                 return;
             }
-            
+
             // Check if dictionary validation is enabled
             const dictionaryEnabled = this.dictionaryEnabled;
-            
+
             if (dictionaryEnabled) {
                 // Validate words with dictionary
                 const { score, breakdown } = window.gameState.calculateTurnScore(
@@ -1367,20 +1390,20 @@ class ScrabbleApp {
                     window.gameState.wordDirection,
                     window.gameState.blankTileIndices
                 );
-                
+
                 const crossWords = breakdown.secondaryWords.map(sw => sw.word);
                 const wordValidation = await window.scrabbleAPI.validateTurn(this.currentWord, crossWords);
-                
+
                 if (!wordValidation.allValid) {
                     // Show validation warning modal
                     this.showValidationWarning(wordValidation);
                     return;
                 }
             }
-            
+
             // Proceed with turn submission
             await this.submitTurnToServer();
-            
+
         } catch (error) {
             console.error('Failed to submit turn:', error);
             this.showError('Failed to submit turn. Please try again.');
@@ -1399,10 +1422,15 @@ class ScrabbleApp {
             window.gameState.wordDirection,
             window.gameState.blankTileIndices
         );
-        
+
         // Use the score as calculated by calculateTurnScore (bingo bonus already included if eligible)
         const finalScore = score;
-        
+
+        // Phase 4 Fix: Check for Bingo (7 tiles placed) and show celebration
+        if (breakdown.newPlacements && breakdown.newPlacements.length === 7) {
+            this.showBingoToast(window.gameState.getCurrentPlayer().name, 50);
+        }
+
         // Prepare turn data
         const turnData = {
             playerId: window.gameState.getCurrentPlayer().id,
@@ -1415,7 +1443,7 @@ class ScrabbleApp {
             direction: window.gameState.wordDirection,
             blankTiles: Array.from(window.gameState.blankTileIndices)
         };
-        
+
         // Apply turn locally first (this will modify window.gameState.boardState and populate `boardStateAfter` in the last turn history entry)
         const newTurn = window.gameState.applyTurn(turnData);
 
@@ -1431,12 +1459,12 @@ class ScrabbleApp {
             direction: newTurn.direction,
             blankTiles: newTurn.blankTiles
         };
-        
+
         console.log('Sending turnDataForServer:', turnDataForServer); // DEBUG LOG
 
         // Submit to server
         await window.scrabbleAPI.submitTurn(window.gameState.gameId, turnDataForServer);
-        
+
         // Update UI
         this.renderBoard();
         this.updatePlayerCards();
@@ -1445,14 +1473,35 @@ class ScrabbleApp {
         this.updateTileCountdown(); // Update tile countdown after each turn
     }
 
+    // Phase 4 Fix: New method for bingo toast
+    showBingoToast(playerName, points) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ' +
+            'bg-yellow-500 text-white px-8 py-4 rounded-xl shadow-2xl z-50 ' +
+            'text-4xl font-bold animate-bounce border-4 border-yellow-300 pointer-events-none';
+        toast.innerHTML = `
+            <div class="text-center">
+                <div>🎉 BINGO! 🎉</div>
+                <div class="text-xl mt-2 font-normal">+50 Points for ${playerName}</div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
+    }
+
     showValidationWarning(validation) {
         let message = `The following words were not found in the dictionary:\n\n`;
         message += `• ${validation.invalidWords.join('\n• ')}\n\n`;
         message += `Would you like to proceed anyway?`;
-        
+
         this.validationMessage.textContent = message;
         this.wordValidationModal.classList.remove('hidden');
-        
+
         // Show backdrop
         const backdrop = this.wordValidationModal.querySelector('.modal-backdrop');
         if (backdrop) {
@@ -1462,26 +1511,26 @@ class ScrabbleApp {
 
     closeValidationModal() {
         this.wordValidationModal.classList.add('hidden');
-        
+
         // Hide backdrop
         const backdrop = this.wordValidationModal.querySelector('.modal-backdrop');
         if (backdrop) {
             backdrop.classList.remove('show');
         }
-        
+
         this.isSubmitting = false;
         this.setLoading(this.submitTurnBtn, false);
     }
 
     async proceedWithTurn() {
         this.wordValidationModal.classList.add('hidden');
-        
+
         // Hide backdrop
         const backdrop = this.wordValidationModal.querySelector('.modal-backdrop');
         if (backdrop) {
             backdrop.classList.remove('show');
         }
-        
+
         try {
             await this.submitTurnToServer();
         } catch (error) {
@@ -1593,10 +1642,10 @@ class ScrabbleApp {
         this.gameScreen.classList.add('hidden');
         this.setupScreen.classList.remove('hidden');
         this.currentScreen = 'setup';
-        
+
         // Reset form
         this.playerNameInputs.forEach(input => input.value = '');
-        
+
         // Reset game state
         window.gameState.reset();
         this.updateTileCountdown(); // Reset tile countdown display
@@ -1620,22 +1669,22 @@ class ScrabbleApp {
         window.gameState.selectedCell = { row: null, col: null };
         window.gameState.wordDirection = null;
         document.querySelectorAll('.board-cell.selected').forEach(c => c.classList.remove('selected'));
-        
+
         this.bingoActive = false;
-        
+
         window.gameState.blankTileIndices.clear();
-        
+
         // Phase 6 Fix: Stop Real-Time Tile Placement when turn is reset
         console.log('Scrabble App: Clearing tile placement state on turn reset');
         if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
             this.realTimeTilePlacement.stopPlacement();
         }
-        
+
         // Reset UI flow
         this.wordEntryContainer.classList.add('hidden');
         this.directionContainer.classList.add('hidden');
         this.startPrompt.classList.remove('hidden');
-        
+
         this.updateTurnState();
         // this.undoBtn.disabled = window.gameState.turnHistory.length === 0; // Removed, handled by updateCancelAndUndoButtonVisibility
 
@@ -1652,7 +1701,7 @@ class ScrabbleApp {
         window.gameState.selectedCell = { row: null, col: null };
         window.gameState.wordDirection = null;
         document.querySelectorAll('.board-cell.selected').forEach(c => c.classList.remove('selected'));
-        
+
         // Reset UI flow to initial state
         this.wordEntryContainer.classList.add('hidden');
         this.directionContainer.classList.add('hidden');
@@ -1702,10 +1751,10 @@ class ScrabbleApp {
             } else {
                 stats = window.gameState.getGameStats();
             }
-            
+
             // General stats
             let generalHtml = `<div><div class="text-sm text-gray-500">Current Round</div><div class="text-xl font-bold">${stats.currentRound}</div></div>`;
-            
+
             if (stats.highestScoringTurn) {
                 // Handle both server and client data formats
                 let playerName;
@@ -1720,7 +1769,7 @@ class ScrabbleApp {
                     const player = stats.players.find(p => p.id === stats.highestScoringTurn.playerId);
                     playerName = player?.name;
                 }
-                
+
                 if (playerName) {
                     generalHtml += `<div><div class="text-sm text-gray-500">Highest Scoring Word</div><div class="text-xl font-bold">${stats.highestScoringTurn.word} (${stats.highestScoringTurn.score})</div><div class="text-xs text-gray-500">by ${playerName}</div></div>`;
                 } else {
@@ -1729,7 +1778,7 @@ class ScrabbleApp {
             } else {
                 generalHtml += `<div><div class="text-sm text-gray-500">Highest Scoring Word</div><div class="text-xl font-bold">-</div></div>`;
             }
-            
+
             this.generalStatsContainer.innerHTML = generalHtml;
 
             // Player history table - use server data if available
@@ -1771,7 +1820,7 @@ class ScrabbleApp {
             const round = turn.round_number || Math.floor(index / players.length) + 1;
             const playerId = turn.playerId || turn.player_id;
             const key = `${round}-${playerId}`;
-            
+
             // Only keep the first turn found for each round-player combination
             if (!turnMap.has(key)) {
                 turnMap.set(key, { ...turn, computedRound: round });
@@ -1894,14 +1943,14 @@ class ScrabbleApp {
         tableHtml += `<tbody>`;
         for (let round = 1; round <= roundsCount; round++) {
             tableHtml += `<tr class="border-b last:border-b-0">`;
-            
+
             // Check if this is a final adjustment round
             const key = `${round}-*`;
             const isAdjustmentRound = Array.from(turnMap.keys()).some(k => {
                 const [roundNum, playerId] = k.split('-');
                 return parseInt(roundNum) === round && turnMap.get(k).some(t => t.isFinalAdjustment);
             });
-            
+
             const roundDisplay = isAdjustmentRound ? `⚖️ ${round}` : round;
             tableHtml += `<td class="p-3 font-bold text-center text-gray-500 bg-gray-50">${roundDisplay}</td>`;
 
@@ -1935,7 +1984,7 @@ class ScrabbleApp {
                         // Check if this is a final adjustment turn
                         const isFinalAdjustment = turn.direction === 'adjustment';
                         const adjustmentType = turn.score > 0 ? 'bonus' : (turn.score < 0 ? 'deduction' : 'empty');
-                        
+
                         let wordDisplay = '';
                         if (isFinalAdjustment) {
                             // Special display for final adjustment turns
@@ -1955,7 +2004,7 @@ class ScrabbleApp {
                         }
 
                         const score = turn.score ?? 0;
-                        const scoreClass = isFinalAdjustment 
+                        const scoreClass = isFinalAdjustment
                             ? (score > 0 ? 'text-green-600' : 'text-red-600')
                             : '';
 
@@ -1999,7 +2048,7 @@ class ScrabbleApp {
     closeHelpModal() {
         if (!this.helpModal) return;
         this.helpModal.classList.add('hidden');
-    } 
+    }
 
     // New methods for tile countdown and inventory modal
     updateTileCountdown() {
@@ -2011,7 +2060,7 @@ class ScrabbleApp {
 
     openTileInventoryModal() {
         if (!this.tileInventoryModal || !this.tileInventoryGrid) return;
-        
+
         const { supply } = window.gameState.getTileSupply();
         this.tileInventoryGrid.innerHTML = ''; // Clear previous tiles
 
@@ -2027,20 +2076,20 @@ class ScrabbleApp {
 
             const tileElement = document.createElement('div');
             tileElement.classList.add('tile', 'tile-sm');
-            
+
             // Create letter span
             const letterSpan = document.createElement('span');
             letterSpan.className = 'tile-letter';
-            
+
             // Create score span
             const scoreSpan = document.createElement('span');
             scoreSpan.className = 'tile-score';
-            
+
             // Create count span (always shown in tile inventory)
             const countSpan = document.createElement('span');
             countSpan.className = 'tile-count';
             countSpan.textContent = count;
-            
+
             // Apply special styling for BLANK tiles
             if (letter === 'BLANK') {
                 tileElement.classList.add('tile-blank');
@@ -2050,17 +2099,17 @@ class ScrabbleApp {
                 letterSpan.textContent = letter;
                 scoreSpan.textContent = window.gameState.letterScores[letter] || 0;
             }
-            
+
             if (count === 0) {
                 // Apply 'faded out' style when no more tiles are available
                 tileElement.classList.add('opacity-30', 'grayscale');
             }
-            
+
             // Assemble tile
             tileElement.appendChild(letterSpan);
             tileElement.appendChild(scoreSpan);
             tileElement.appendChild(countSpan);
-            
+
             this.tileInventoryGrid.appendChild(tileElement);
         });
 
@@ -2109,9 +2158,9 @@ class ScrabbleApp {
         if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled) {
             this.realTimeTilePlacement.stopPlacement();
         }
-        
+
         this.clearWordInputAndResetUI(); // Use the helper method to clear and reset UI
-        
+
         // Close mobile sheet if open
         if (this.isMobileLayout() && this.isMobileSheetOpen()) {
             this.closeMobileSheet();
@@ -2119,7 +2168,7 @@ class ScrabbleApp {
 
         // Call updateTurnState to ensure UI is consistent with reset state
         // This will in turn call updateCancelAndUndoButtonVisibility and updateTileCountdown
-        this.updateTurnState(); 
+        this.updateTurnState();
     }
 
     // Helper method to get the existing word at the current selected position
@@ -2143,7 +2192,7 @@ class ScrabbleApp {
         }
 
         const existingWord = this.getExistingWordAtPosition();
-        
+
         if (existingWord) {
             const startIndex = this.currentWord.indexOf(existingWord);
 
@@ -2178,11 +2227,11 @@ class ScrabbleApp {
     // Phase 1 Fix: New method to close all modals with tile cleanup
     closeAllModals() {
         // Phase 1 Fix: Clean up tile placement when closing any modal
-        if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled && 
+        if (this.realTimeTilePlacement && this.realTimeTilePlacementEnabled &&
             this.realTimeTilePlacement.isActive) {
             console.log('Scrabble App: Cleaning up tile placement on modal close');
             this.realTimeTilePlacement.stopPlacement();
-            
+
             // Phase 1 Fix: Validate cleanup was successful
             setTimeout(() => {
                 if (this.realTimeTilePlacement && !this.realTimeTilePlacement.validateCleanup()) {
@@ -2190,7 +2239,7 @@ class ScrabbleApp {
                 }
             }, 100);
         }
-        
+
         // Close all open modals
         if (this.wordValidationModal) {
             this.wordValidationModal.classList.add('hidden');
@@ -2203,7 +2252,7 @@ class ScrabbleApp {
         if (this.statsModal) this.statsModal.classList.add('hidden');
         if (this.helpModal) this.helpModal.classList.add('hidden');
         if (this.tileInventoryModal) this.tileInventoryModal.classList.add('hidden');
-        
+
         // Cancel the current turn
         this.handleCancelTurn();
     }
@@ -2266,21 +2315,21 @@ function startFinishGameFlow() {
         }
 
         console.log('Starting finish game flow with players:', window.gameState.players);
-        
+
         finishGameState = {
             players: JSON.parse(JSON.stringify(window.gameState.getPlayers ? window.gameState.getPlayers() : window.gameState.players)),
             unassignedTiles: new Map(), // Start empty - only add tiles that are actually remaining
             gameEnder: null,
             selectedRecipient: null,
         };
-        
+
         // Initialize leftover tiles for each player
         finishGameState.players.forEach(p => p.leftoverTiles = []);
 
         // Calculate remaining tiles from the bag
         const remainingTiles = window.gameState.calculateRemainingTiles();
         console.log('Remaining tiles from bag:', remainingTiles);
-        
+
         // Update unassignedTiles based on actual remaining tiles
         const tileCount = new Map();
         remainingTiles.forEach(tile => {
@@ -2290,7 +2339,7 @@ function startFinishGameFlow() {
                 tileCount.set(tile, (tileCount.get(tile) || 0) + 1);
             }
         });
-        
+
         // Update the unassignedTiles with actual counts
         tileCount.forEach((count, letter) => {
             finishGameState.unassignedTiles.set(letter, count);
@@ -2302,7 +2351,7 @@ function startFinishGameFlow() {
         finishModal1.classList.remove('hidden');
         finishModal2.classList.add('hidden');
         finishModal3.classList.add('hidden');
-        
+
     } catch (error) {
         console.error('Error starting finish game flow:', error);
         if (window.scrabbleApp) {
@@ -2317,32 +2366,39 @@ function selectGameEnder(player) {
         console.error('Finish game state not properly initialized');
         return;
     }
-    
+
     // Fix: Handle both player object and player ID
     const playerId = typeof player === 'object' ? player.id : player;
     finishGameState.gameEnder = finishGameState.players.find(p => p.id === playerId);
-    
+
     if (!finishGameState.gameEnder) {
         console.error('Game ender not found:', playerId);
         return;
     }
-    
+
     const otherPlayers = finishGameState.players.filter(p => p.id !== finishGameState.gameEnder.id);
     if (otherPlayers.length > 0) {
+        // Fix: Automatically select the first opponent as recipient to improve UX
         finishGameState.selectedRecipient = otherPlayers[0];
     }
+
     renderFinishModal2();
     finishModal1.classList.add('hidden');
     finishModal2.classList.remove('hidden');
 }
 
 function selectTileRecipient(player) {
-    finishGameState.selectedRecipient = finishGameState.players.find(p => p.id === player.id);
+    // Check if player is passed as ID or object
+    const playerId = (player && typeof player === 'object') ? player.id : player;
+    finishGameState.selectedRecipient = finishGameState.players.find(p => p.id === playerId);
     renderFinishModal2();
 }
 
 function assignTile(letter) {
-    if (!finishGameState.selectedRecipient) return;
+    if (!finishGameState.selectedRecipient) {
+        window.scrabbleApp.showError("Please select a player to assign this tile to.");
+        return;
+    }
     const recipient = finishGameState.players.find(p => p.id === finishGameState.selectedRecipient.id);
     recipient.leftoverTiles.push(letter);
     finishGameState.unassignedTiles.set(letter, finishGameState.unassignedTiles.get(letter) - 1);
@@ -2359,7 +2415,7 @@ function returnTile(player, letter, index) {
 async function calculateAndShowFinalScores() {
     try {
         console.log('=== FINAL SCORE CALCULATION WITH ADJUSTMENT TURNS ===');
-        
+
         // Create tile distribution map for final adjustment turns
         const tileDistribution = {};
         finishGameState.players.forEach(player => {
@@ -2367,18 +2423,18 @@ async function calculateAndShowFinalScores() {
                 tileDistribution[player.id] = player.leftoverTiles;
             }
         });
-        
+
         console.log('Tile distribution for adjustment turns:', tileDistribution);
         console.log('Game ender ID:', finishGameState.gameEnder.id);
-        
+
         // Generate final adjustment turns
         const adjustmentTurns = window.gameState.generateFinalAdjustmentTurns(
             finishGameState.gameEnder.id,
             tileDistribution
         );
-        
+
         console.log('Generated final adjustment turns:', adjustmentTurns);
-        
+
         // Submit final adjustment turns to server
         for (const adjustmentTurn of adjustmentTurns) {
             const turnData = {
@@ -2392,7 +2448,7 @@ async function calculateAndShowFinalScores() {
                 direction: adjustmentTurn.direction,
                 blankTiles: adjustmentTurn.blank_tiles
             };
-            
+
             console.log(`=== SUBMITTING ADJUSTMENT TURN ===`);
             console.log(`Player ID: ${turnData.playerId}`);
             console.log(`Word: "${turnData.word}"`);
@@ -2405,55 +2461,55 @@ async function calculateAndShowFinalScores() {
             console.log(`Blank Tiles:`, turnData.blankTiles);
             console.log(`Full Turn Data:`, turnData);
             console.log(`================================`);
-            
+
             await window.scrabbleAPI.submitTurn(window.gameState.gameId, turnData);
-            
+
             console.log(`✅ Successfully submitted final adjustment turn for player ${adjustmentTurn.playerId}: ${adjustmentTurn.word} (${adjustmentTurn.score})`);
         }
-        
+
         // Calculate final scores after submitting adjustment turns
         const finalScores = window.gameState.calculateFinalScores(
             finishGameState.gameEnder.id,
             tileDistribution
         );
-        
+
         console.log('Final scores after adjustment:', finalScores);
-        
+
         // Find winner
         const sortedPlayers = Object.entries(finalScores)
-            .sort(([,a], [,b]) => b - a)
+            .sort(([, a], [, b]) => b - a)
             .map(([playerId, score]) => {
                 const player = finishGameState.players.find(p => p.id === parseInt(playerId));
                 return { ...player, finalScore: score };
             });
-        
+
         const winner = sortedPlayers[0];
-        
+
         console.log('Winner determined:', winner);
-        
+
         // Update game on server
         await window.scrabbleAPI.finishGame(window.gameState.gameId, winner.id);
         window.gameState.isGameActive = false;
-        
+
         // Clear stored game references
         localStorage.removeItem('scrabble_current_game');
         localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY);
         localStorage.removeItem(LAST_INTERRUPTED_STORAGE_KEY);
-        
+
         // Update ScrabbleApp state if available
         if (window.scrabbleApp) {
             window.scrabbleApp.clearStoredGameRefs();
             window.scrabbleApp.updateResumeButtonVisibility();
             window.scrabbleApp.updatePlayerCards();
         }
-        
+
         // Show final scores
         renderFinishModal3(sortedPlayers);
         finishModal2.classList.add('hidden');
         finishModal3.classList.remove('hidden');
-        
+
         console.log('=== FINAL SCORE CALCULATION COMPLETED ===');
-        
+
     } catch (error) {
         console.error('Failed to calculate and show final scores:', error);
         if (window.scrabbleApp) {
@@ -2489,11 +2545,11 @@ function renderFinishModal2() {
         const playerContainer = document.createElement('div');
         playerContainer.className = `player-card ${isSelected ? 'selected' : ''}`;
         playerContainer.onclick = () => selectTileRecipient(player.id);
-        
+
         const header = document.createElement('div');
         header.className = 'player-card-header';
         header.innerHTML = `<span class="player-name">${player.name}</span><span class="score-deduction">-${deduction}</span>`;
-        
+
         const tilesContainer = document.createElement('div');
         tilesContainer.className = 'assigned-tiles-container';
         player.leftoverTiles.forEach((letter, index) => {
@@ -2501,7 +2557,7 @@ function renderFinishModal2() {
             tileEl.onclick = (e) => { e.stopPropagation(); returnTile(player, letter, index); };
             tilesContainer.appendChild(tileEl);
         });
-        
+
         playerContainer.appendChild(header);
         playerContainer.appendChild(tilesContainer);
         tileRecipientList.appendChild(playerContainer);
@@ -2529,7 +2585,7 @@ function renderFinishModal3(finalScores) {
         scoreItem.innerHTML = `<span class="player-name">${isWinner ? '🏆 ' : ''}${player.name}</span><span class="player-score">${player.finalScore}</span>`;
         finalScoresList.appendChild(scoreItem);
     });
-    
+
     // Update player scores in the background to reflect final scores
     if (window.scrabbleApp && window.scrabbleApp.updatePlayerCards) {
         // Update the game state players with final scores
@@ -2539,35 +2595,35 @@ function renderFinishModal3(finalScores) {
                 gameStatePlayer.score = finalPlayer.finalScore;
             }
         });
-        
+
         // Update the UI to show final scores
         window.scrabbleApp.updatePlayerCards();
         window.scrabbleApp.updateTurnIndicator(true); // Pass true for read-only mode
     }
-    
+
     // Update game state to reflect completion
     window.gameState.isGameActive = false;
-    
+
     console.log('Game completed successfully with final adjustment turns recorded');
 }
 
 function createTileElement(letter, count, isSmall = false) {
     const tileButton = document.createElement('button');
     tileButton.className = `finish-game-tile ${isSmall ? 'finish-game-tile-sm' : ''}`;
-    
+
     // Create letter span
     const letterSpan = document.createElement('span');
     letterSpan.className = 'tile-letter';
-    
+
     // Create score span
     const scoreSpan = document.createElement('span');
     scoreSpan.className = 'tile-score';
-    
+
     // Create count span (only shown for unassigned tiles pool)
     const countSpan = document.createElement('span');
     countSpan.className = 'tile-count';
     countSpan.textContent = count;
-    
+
     // Handle blank tiles
     if (letter === '_') {
         tileButton.classList.add('tile-blank');
@@ -2577,12 +2633,12 @@ function createTileElement(letter, count, isSmall = false) {
         letterSpan.textContent = letter;
         scoreSpan.textContent = tileValues[letter];
     }
-    
+
     // Assemble tile
     tileButton.appendChild(letterSpan);
     tileButton.appendChild(scoreSpan);
     tileButton.appendChild(countSpan);
-    
+
     return tileButton;
 }
 
@@ -2597,7 +2653,7 @@ function setupFinishGameListeners() {
             window.scrabbleApp.handleNewGame();
         }
     });
-    
+
     // Add cancel functionality for all modals
     setupFinishGameModalCancelHandlers();
 }
@@ -2606,7 +2662,7 @@ function setupFinishGameListeners() {
 function setupFinishGameModalCancelHandlers() {
     // Add close buttons to each modal if they don't exist
     addCloseButtonsToFinishGameModals();
-    
+
     // Setup event listeners for cancel actions
     setupFinishGameCancelEvents();
 }
@@ -2620,7 +2676,7 @@ function addCloseButtonsToFinishGameModals() {
         closeBtn.innerHTML = '&times;';
         closeBtn.setAttribute('aria-label', 'Close modal');
         closeBtn.title = 'Cancel and return to game';
-        
+
         // Style the header to have flex layout
         if (modal1Header) {
             modal1Header.style.display = 'flex';
@@ -2629,7 +2685,7 @@ function addCloseButtonsToFinishGameModals() {
             modal1Header.appendChild(closeBtn);
         }
     }
-    
+
     // Modal 2: Assign Leftover Tiles
     const modal2Header = finishModal2.querySelector('#modal-2-header') || finishModal2.querySelector('h2')?.parentElement;
     if (modal2Header && !modal2Header.querySelector('.close-finish-game-modal')) {
@@ -2638,7 +2694,7 @@ function addCloseButtonsToFinishGameModals() {
         closeBtn.innerHTML = '&times;';
         closeBtn.setAttribute('aria-label', 'Close modal');
         closeBtn.title = 'Cancel and return to game';
-        
+
         // Style the header to have flex layout
         if (modal2Header) {
             modal2Header.style.display = 'flex';
@@ -2647,7 +2703,7 @@ function addCloseButtonsToFinishGameModals() {
             modal2Header.appendChild(closeBtn);
         }
     }
-    
+
     // Modal 3: Game Over!
     const modal3Header = finishModal3.querySelector('.modal-title')?.parentElement || finishModal3.querySelector('h2')?.parentElement;
     if (modal3Header && !modal3Header.querySelector('.close-finish-game-modal')) {
@@ -2656,7 +2712,7 @@ function addCloseButtonsToFinishGameModals() {
         closeBtn.innerHTML = '&times;';
         closeBtn.setAttribute('aria-label', 'Close modal');
         closeBtn.title = 'Close and view finished game';
-        
+
         // Style the header to have flex layout
         if (modal3Header) {
             modal3Header.style.display = 'flex';
@@ -2674,21 +2730,21 @@ function setupFinishGameCancelEvents() {
             handleFinishGameCancel();
         }
     });
-    
+
     // ESC key handler
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !finishModal1.classList.contains('hidden')) {
             handleFinishGameCancel();
         }
     });
-    
+
     // Backdrop click handler (only for modals 1 and 2)
     finishModal1.addEventListener('click', (e) => {
         if (e.target === finishModal1) {
             handleFinishGameCancel();
         }
     });
-    
+
     finishModal2.addEventListener('click', (e) => {
         if (e.target === finishModal2) {
             handleFinishGameCancel();
@@ -2705,16 +2761,16 @@ function getCurrentFinishGameModal() {
 
 function handleFinishGameCancel() {
     const currentModal = getCurrentFinishGameModal();
-    
+
     console.log(`Canceling finish game flow from modal ${currentModal}`);
-    
+
     // For modal 3 (Game Over), just close the modal - game is already finished
     if (currentModal === 3) {
         // Just hide the modal, no container to hide
         closeAllFinishGameModals();
         return;
     }
-    
+
     // For modals 1 and 2, close and clean up - game continues
     closeAllFinishGameModals();
 }
@@ -2724,10 +2780,10 @@ function closeAllFinishGameModals() {
     finishModal1.classList.add('hidden');
     finishModal2.classList.add('hidden');
     finishModal3.classList.add('hidden');
-    
+
     // Reset the finish game state
     finishGameState = {};
-    
+
     console.log('Finish game flow cancelled and cleaned up');
 }
 

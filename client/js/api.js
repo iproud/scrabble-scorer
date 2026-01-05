@@ -3,14 +3,14 @@ class ScrabbleAPI {
     constructor(baseURL = '/api') {
         this.baseURL = baseURL;
         this.isOnline = navigator.onLine;
-        
+
         // Listen for online/offline events
         window.addEventListener('online', () => {
             this.isOnline = true;
             console.log('API: Back online');
             this.syncPendingActions();
         });
-        
+
         window.addEventListener('offline', () => {
             this.isOnline = false;
             console.log('API: Gone offline');
@@ -30,17 +30,19 @@ class ScrabbleAPI {
 
         try {
             const response = await fetch(url, config);
-            
+            const text = await response.text();
+
+            console.log(`[API DEBUG] ${endpoint} Response Status: ${response.status} ${response.statusText}`);
+            console.log(`[API DEBUG] Raw Body (first 200 chars):`, text.substring(0, 200));
+
             if (!response.ok) {
                 let errorData = {};
                 try {
-                    errorData = await response.json();
+                    errorData = JSON.parse(text);
                 } catch (e) {
-                    // If JSON parsing fails, try to get text
-                    const errorText = await response.text();
-                    errorData = { error: errorText, status: response.status, statusText: response.statusText };
+                    errorData = { error: text, status: response.status, statusText: response.statusText };
                 }
-                
+
                 const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
                 console.error(`API Error (${endpoint}):`, errorMessage);
                 console.error(`API Error Details (${endpoint}):`, {
@@ -52,16 +54,16 @@ class ScrabbleAPI {
                 });
                 throw new Error(errorMessage);
             }
-            
-            return await response.json();
+
+            return JSON.parse(text);
         } catch (error) {
             console.error(`API Error (${endpoint}):`, error);
-            
+
             // If offline, try to handle gracefully
             if (!this.isOnline || error.name === 'TypeError') {
                 return this.handleOfflineRequest(endpoint, options);
             }
-            
+
             throw error;
         }
     }
@@ -75,13 +77,13 @@ class ScrabbleAPI {
                 return cachedData;
             }
         }
-        
+
         // For POST/PUT requests, queue them for later
         if (options.method === 'POST' || options.method === 'PUT') {
             this.queueOfflineAction(endpoint, options);
             return { success: true, queued: true, message: 'Action queued for when online' };
         }
-        
+
         throw new Error('No internet connection and no cached data available');
     }
 
@@ -103,7 +105,7 @@ class ScrabbleAPI {
         try {
             const cacheKey = `scrabble_cache_${endpoint.replace(/[^a-zA-Z0-9]/g, '_')}`;
             const cached = localStorage.getItem(cacheKey);
-            
+
             if (cached) {
                 const { data, timestamp } = JSON.parse(cached);
                 // Return cached data if it's less than 1 hour old
@@ -137,7 +139,7 @@ class ScrabbleAPI {
     async syncPendingActions() {
         try {
             const queue = JSON.parse(localStorage.getItem('scrabble_offline_queue') || '[]');
-            
+
             for (const action of queue) {
                 try {
                     await this.request(action.endpoint, action.options);
@@ -148,7 +150,7 @@ class ScrabbleAPI {
                     continue;
                 }
             }
-            
+
             // Clear successfully synced actions
             localStorage.removeItem('scrabble_offline_queue');
         } catch (error) {
@@ -162,7 +164,7 @@ class ScrabbleAPI {
             method: 'POST',
             body: JSON.stringify({ playerNames })
         });
-        
+
         // Cache the created game
         this.cacheData(`/games/${data.id}`, data);
         return data;
@@ -193,11 +195,11 @@ class ScrabbleAPI {
             method: 'POST',
             body: JSON.stringify(turnData)
         });
-        
+
         // Invalidate game cache since it's been updated
         const cacheKey = `scrabble_cache__games_${gameId}`;
         localStorage.removeItem(cacheKey);
-        
+
         return data;
     }
 
@@ -226,11 +228,11 @@ class ScrabbleAPI {
         const data = await this.request(`/games/${gameId}`, {
             method: 'DELETE'
         });
-        
+
         // Invalidate caches
         localStorage.removeItem(`scrabble_cache__games_${gameId}`);
         localStorage.removeItem('scrabble_cache__games');
-        
+
         return data;
     }
 
@@ -238,11 +240,11 @@ class ScrabbleAPI {
         const data = await this.request(`/games/${gameId}/reinstate`, {
             method: 'PUT'
         });
-        
+
         // Invalidate caches
         localStorage.removeItem(`scrabble_cache__games_${gameId}`);
         localStorage.removeItem('scrabble_cache__games');
-        
+
         return data;
     }
 
@@ -253,7 +255,7 @@ class ScrabbleAPI {
 
         // Invalidate game cache since it's been updated
         localStorage.removeItem(`scrabble_cache__games_${gameId}`);
-        
+
         return data;
     }
 

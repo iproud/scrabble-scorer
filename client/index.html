@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scrabble Keeper</title>
 
     <!-- PWA Meta Tags -->
-    <meta name="description" content="Scrabble Keeper helps you track live Scrabble games with history, validation, and offline support.">
+    <meta name="description"
+        content="Scrabble Keeper helps you track live Scrabble games with history, validation, and offline support.">
     <meta name="theme-color" content="#1f2937">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,7 +18,8 @@
     <link rel="manifest" href="/manifest.json">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzJmMzhhZCIvPgo8cGF0aCBkPSJNNyA4SDE1VjE2SDdWOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyA4SDI1VjE2SDE3VjhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNyAxNkgxNVMjMjQiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyAxNkgzNVYyNEgxN1YxNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzJmMzhhZCIvPgo8cGF0aCBkPSJNNyA4SDE1VjE2SDdWOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyA4SDI1VjE2SDE3VjhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNyAxNkgxNVMjMjQiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyAxNkgzNVYyNEgxN1YxNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==">
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,64 +30,103 @@
     <!-- Custom Styles -->
     <link rel="stylesheet" href="/css/styles.css">
 </head>
+
 <body class="bg-gray-100 text-gray-800 min-h-screen">
     <header class="sticky top-0 z-40 backdrop-blur bg-white/90 border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
             <a href="/" class="text-lg font-semibold text-indigo-600 tracking-tight">Scrabble Keeper</a>
             <div class="flex items-center gap-2">
                 <!-- Tile Countdown Button (added) -->
-                <button id="tile-countdown-btn" class="w-9 h-9 p-1 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500" title="Tile Supply">
+                <button id="tile-countdown-btn"
+                    class="w-9 h-9 p-1 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    title="Tile Supply">
                     <span id="tile-countdown-value" class="text-sm font-semibold">0</span>
                 </button>
                 <!-- Undo Button (moved to topbar) -->
-                <button id="topbar-undo-btn" class="hidden w-9 h-9 p-1 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500" title="Undo Last Turn">
-                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 7v6h6"></path> <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path> </g></svg>
+                <button id="topbar-undo-btn"
+                    class="hidden w-9 h-9 p-1 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    title="Undo Last Turn">
+                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                        <g id="SVGRepo_iconCarrier">
+                            <path d="M3 7v6h6"></path>
+                            <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
+                        </g>
+                    </svg>
                 </button>
                 <div id="game-actions-container" class="relative hidden">
-                    <button id="game-actions-button" class="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-haspopup="true" aria-expanded="false">
-                        <svg class="w-5 h-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M91.2 36.9c-12.4-6.8-27.4-6.5-39.6 .7S32 57.9 32 72l0 368c0 14.1 7.5 27.2 19.6 34.4s27.2 7.5 39.6 .7l336-184c12.8-7 20.8-20.5 20.8-35.1s-8-28.1-20.8-35.1l-336-184z"/></svg>
+                    <button id="game-actions-button"
+                        class="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-haspopup="true" aria-expanded="false">
+                        <svg class="w-5 h-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                            <path
+                                d="M91.2 36.9c-12.4-6.8-27.4-6.5-39.6 .7S32 57.9 32 72l0 368c0 14.1 7.5 27.2 19.6 34.4s27.2 7.5 39.6 .7l336-184c12.8-7 20.8-20.5 20.8-35.1s-8-28.1-20.8-35.1l-336-184z" />
+                        </svg>
                     </button>
-                    <nav id="game-actions-menu" class="hidden absolute right-0 mt-2 w-52 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
-                        <button id="pause-game-btn" type="button" class="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 focus:outline-none rounded-t-xl">
-                            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-                                <svg class="w-4 h-4" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M48 32C21.5 32 0 53.5 0 80L0 432c0 26.5 21.5 48 48 48l64 0c26.5 0 48-21.5 48-48l0-352c0-26.5-21.5-48-48-48L48 32zm224 0c-26.5 0-48 21.5-48 48l0 352c0 26.5 21.5 48 48 48l64 0c26.5 0 48-21.5 48-48l0-352c0-26.5-21.5-48-48-48l-64 0z"/></svg>
+                    <nav id="game-actions-menu"
+                        class="hidden absolute right-0 mt-2 w-52 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
+                        <button id="pause-game-btn" type="button"
+                            class="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 focus:outline-none rounded-t-xl">
+                            <span
+                                class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                                <svg class="w-4 h-4" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 384 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                                    <path
+                                        d="M48 32C21.5 32 0 53.5 0 80L0 432c0 26.5 21.5 48 48 48l64 0c26.5 0 48-21.5 48-48l0-352c0-26.5-21.5-48-48-48L48 32zm224 0c-26.5 0-48 21.5-48 48l0 352c0 26.5 21.5 48 48 48l64 0c26.5 0 48-21.5 48-48l0-352c0-26.5-21.5-48-48-48l-64 0z" />
+                                </svg>
                             </span>
                             <span class="font-medium">Pause Game</span>
                         </button>
-                        <button id="end-game-btn" type="button" class="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 focus:outline-none">
-                            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-                                <svg class="w-4 h-4" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M32 0C49.7 0 64 14.3 64 32l0 16 69-17.2c38.1-9.5 78.3-5.1 113.5 12.5 46.3 23.2 100.8 23.2 147.1 0l9.6-4.8C423.8 28.1 448 43.1 448 66.1l0 279.7c0 13.3-8.3 25.3-20.8 30l-34.7 13c-46.2 17.3-97.6 14.6-141.7-7.4-37.9-19-81.4-23.7-122.5-13.4L64 384 64 480c0 17.7-14.3 32-32 32S0 497.7 0 480L0 32C0 14.3 14.3 0 32 0zM64 187.1l64-13.9 0 65.5-64 13.9 0 65.5 48.8-12.2c5.1-1.3 10.1-2.4 15.2-3.3l0-63.9 38.9-8.4c8.3-1.8 16.7-2.5 25.1-2.1l0-64c13.6 .4 27.2 2.6 40.4 6.4l23.6 6.9 0 66.7-41.7-12.3c-7.3-2.1-14.8-3.4-22.3-3.8l0 71.4c21.8 1.9 43.3 6.7 64 14.4l0-69.8 22.7 6.7c13.5 4 27.3 6.4 41.3 7.4l0-64.2c-7.8-.8-15.6-2.3-23.2-4.5l-40.8-12 0-62c-13-3.8-25.8-8.8-38.2-15-8.2-4.1-16.9-7-25.8-8.8l0 72.4c-13-.4-26 .8-38.7 3.6l-25.3 5.5 0-75.2-64 16 0 73.1zM320 335.7c16.8 1.5 33.9-.7 50-6.8l14-5.2 0-71.7-7.9 1.8c-18.4 4.3-37.3 5.7-56.1 4.5l0 77.4zm64-149.4l0-70.8c-20.9 6.1-42.4 9.1-64 9.1l0 69.4c13.9 1.4 28 .5 41.7-2.6l22.3-5.2z"/></svg>
+                        <button id="end-game-btn" type="button"
+                            class="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 focus:outline-none">
+                            <span
+                                class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                                <svg class="w-4 h-4" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                                    <path
+                                        d="M32 0C49.7 0 64 14.3 64 32l0 16 69-17.2c38.1-9.5 78.3-5.1 113.5 12.5 46.3 23.2 100.8 23.2 147.1 0l9.6-4.8C423.8 28.1 448 43.1 448 66.1l0 279.7c0 13.3-8.3 25.3-20.8 30l-34.7 13c-46.2 17.3-97.6 14.6-141.7-7.4-37.9-19-81.4-23.7-122.5-13.4L64 384 64 480c0 17.7-14.3 32-32 32S0 497.7 0 480L0 32C0 14.3 14.3 0 32 0zM64 187.1l64-13.9 0 65.5-64 13.9 0 65.5 48.8-12.2c5.1-1.3 10.1-2.4 15.2-3.3l0-63.9 38.9-8.4c8.3-1.8 16.7-2.5 25.1-2.1l0-64c13.6 .4 27.2 2.6 40.4 6.4l23.6 6.9 0 66.7-41.7-12.3c-7.3-2.1-14.8-3.4-22.3-3.8l0 71.4c21.8 1.9 43.3 6.7 64 14.4l0-69.8 22.7 6.7c13.5 4 27.3 6.4 41.3 7.4l0-64.2c-7.8-.8-15.6-2.3-23.2-4.5l-40.8-12 0-62c-13-3.8-25.8-8.8-38.2-15-8.2-4.1-16.9-7-25.8-8.8l0 72.4c-13-.4-26 .8-38.7 3.6l-25.3 5.5 0-75.2-64 16 0 73.1zM320 335.7c16.8 1.5 33.9-.7 50-6.8l14-5.2 0-71.7-7.9 1.8c-18.4 4.3-37.3 5.7-56.1 4.5l0 77.4zm64-149.4l0-70.8c-20.9 6.1-42.4 9.1-64 9.1l0 69.4c13.9 1.4 28 .5 41.7-2.6l22.3-5.2z" />
+                                </svg>
                             </span>
                             <span class="font-medium">Finish Game</span>
                         </button>
-                        <button id="abandon-game-btn" type="button" class="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 focus:outline-none rounded-b-xl">
+                        <button id="abandon-game-btn" type="button"
+                            class="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 focus:outline-none rounded-b-xl">
                             <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                                <svg class="w-4 h-4" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M136.7 5.9C141.1-7.2 153.3-16 167.1-16l113.9 0c13.8 0 26 8.8 30.4 21.9L320 32 416 32c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 96C14.3 96 0 81.7 0 64S14.3 32 32 32l96 0 8.7-26.1zM32 144l384 0 0 304c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64l0-304zm88 64c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24zm104 0c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24zm104 0c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24z"/></svg>
+                                <svg class="w-4 h-4" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 448 512"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                                    <path
+                                        d="M136.7 5.9C141.1-7.2 153.3-16 167.1-16l113.9 0c13.8 0 26 8.8 30.4 21.9L320 32 416 32c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 96C14.3 96 0 81.7 0 64S14.3 32 32 32l96 0 8.7-26.1zM32 144l384 0 0 304c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64l0-304zm88 64c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24zm104 0c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24zm104 0c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24z" />
+                                </svg>
                             </span>
                             <span class="font-medium">Abandon Game</span>
                         </button>
                     </nav>
                 </div>
                 <div class="relative">
-                    <button id="topbar-menu-button" class="w-9 h-9 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-haspopup="true" aria-expanded="false">
+                    <button id="topbar-menu-button"
+                        class="w-9 h-9 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-haspopup="true" aria-expanded="false">
                         <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
+                            <path
+                                d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
                         </svg>
                         <span class="sr-only">Open menu</span>
                     </button>
-                    <nav id="topbar-menu" class="hidden absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
+                    <nav id="topbar-menu"
+                        class="hidden absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
                         <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-xl">
                             New Game
                         </a>
                         <a href="/history.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                             History
                         </a>
-                        <button id="help-menu-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        <button id="help-menu-btn"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-xl">
                             Help
                         </button>
-                        <a href="/admin.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-xl">
-                            Admin
-                        </a>
                     </nav>
                 </div>
             </div>
@@ -99,10 +141,12 @@
                     <h1 class="text-3xl font-bold text-gray-800">Start a new game</h1>
                     <p class="text-gray-500 mt-1">Enter player details and optional dictionary validation.</p>
                 </div>
-                <a href="/history.html" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full text-sm font-medium text-gray-600 hover:text-gray-800 hover:border-gray-400 transition">
+                <a href="/history.html"
+                    class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full text-sm font-medium text-gray-600 hover:text-gray-800 hover:border-gray-400 transition">
                     Game history
                     <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path d="M6.75 4.75a.75.75 0 000 1.5h5.69L4.97 13.72a.75.75 0 101.06 1.06l7.47-7.47v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5z" />
+                        <path
+                            d="M6.75 4.75a.75.75 0 000 1.5h5.69L4.97 13.72a.75.75 0 101.06 1.06l7.47-7.47v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5z" />
                     </svg>
                 </a>
             </div>
@@ -112,24 +156,33 @@
                     <label class="block text-sm font-medium text-gray-600 mb-2">Player Names (2-4)</label>
                     <div class="space-y-4">
                         <div class="relative">
-                            <input type="text" placeholder="Player 1" class="player-name-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition" data-index="0" autocomplete="off" />
+                            <input type="text" placeholder="Player 1"
+                                class="player-name-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+                                data-index="0" autocomplete="off" />
                         </div>
                         <div class="relative">
-                            <input type="text" placeholder="Player 2" class="player-name-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition" data-index="1" autocomplete="off" />
+                            <input type="text" placeholder="Player 2"
+                                class="player-name-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+                                data-index="1" autocomplete="off" />
                         </div>
                         <div class="relative">
-                            <input type="text" placeholder="Player 3 (optional)" class="player-name-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition" data-index="2" autocomplete="off" />
+                            <input type="text" placeholder="Player 3 (optional)"
+                                class="player-name-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+                                data-index="2" autocomplete="off" />
                         </div>
                         <div class="relative">
-                            <input type="text" placeholder="Player 4 (optional)" class="player-name-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition" data-index="3" autocomplete="off" />
+                            <input type="text" placeholder="Player 4 (optional)"
+                                class="player-name-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+                                data-index="3" autocomplete="off" />
                         </div>
                     </div>
 
                     <div class="mt-6">
                         <label class="flex items-start gap-3">
-                            <input type="checkbox" id="dictionary-toggle" class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
+                            <input type="checkbox" id="dictionary-toggle"
+                                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
                             <span class="text-sm text-gray-600 leading-6">
-                                Validate turns against the active dictionary. You can manage dictionaries in the Admin menu.
+                                Validate turns against the active dictionary.
                             </span>
                         </label>
                     </div>
@@ -137,10 +190,12 @@
 
                 <div class="space-y-6">
                     <div class="flex flex-col gap-3">
-                        <button id="start-game-btn" class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-[1.01]">
+                        <button id="start-game-btn"
+                            class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-[1.01]">
                             Start Game
                         </button>
-                        <button id="load-latest-active-btn" class="hidden w-full bg-gray-900 text-white font-semibold py-3 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
+                        <button id="load-latest-active-btn"
+                            class="hidden w-full bg-gray-900 text-white font-semibold py-3 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
                             Resume Latest Active Game
                         </button>
                     </div>
@@ -156,59 +211,81 @@
 
             <div class="flex flex-col lg:flex-row gap-6">
                 <!-- Board (Middle Column) -->
-                <div class="flex-grow bg-white p-2 sm:p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center">
+                <div
+                    class="flex-grow bg-white p-2 sm:p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center">
                     <div class="w-full max-w-[600px] aspect-square">
                         <div id="scrabble-board"></div>
                     </div>
                     <!-- Board Legend -->
-                    <div id="board-legend" class="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-gray-600">
-                        <div class="flex items-center"><span class="w-4 h-4 rounded-sm TWS mr-2"></span> Triple Word</div>
-                        <div class="flex items-center"><span class="w-4 h-4 rounded-sm DWS mr-2"></span> Double Word</div>
-                        <div class="flex items-center"><span class="w-4 h-4 rounded-sm TLS mr-2"></span> Triple Letter</div>
-                        <div class="flex items-center"><span class="w-4 h-4 rounded-sm DLS mr-2"></span> Double Letter</div>
+                    <div id="board-legend"
+                        class="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-gray-600">
+                        <div class="flex items-center"><span class="w-4 h-4 rounded-sm TWS mr-2"></span> Triple Word
+                        </div>
+                        <div class="flex items-center"><span class="w-4 h-4 rounded-sm DWS mr-2"></span> Double Word
+                        </div>
+                        <div class="flex items-center"><span class="w-4 h-4 rounded-sm TLS mr-2"></span> Triple Letter
+                        </div>
+                        <div class="flex items-center"><span class="w-4 h-4 rounded-sm DLS mr-2"></span> Double Letter
+                        </div>
                     </div>
-                    <div id="dictionary-runtime-toggle-container" class="mt-3 flex items-center justify-center gap-3 text-sm text-gray-600">
+                    <div id="dictionary-runtime-toggle-container"
+                        class="mt-3 flex items-center justify-center gap-3 text-sm text-gray-600">
                         <span class="font-medium text-gray-600">Dictionary Validation</span>
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="dictionary-runtime-toggle" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-200 peer-checked:bg-indigo-600"></div>
-                            <span class="absolute left-0.5 top-0.5 h-5 w-5 bg-white border border-gray-300 rounded-full transition-transform duration-200 peer-checked:translate-x-5 peer-checked:border-indigo-600"></span>
+                            <div
+                                class="w-11 h-6 bg-gray-200 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-200 peer-checked:bg-indigo-600">
+                            </div>
+                            <span
+                                class="absolute left-0.5 top-0.5 h-5 w-5 bg-white border border-gray-300 rounded-full transition-transform duration-200 peer-checked:translate-x-5 peer-checked:border-indigo-600"></span>
                         </label>
-                        <span id="dictionary-status-label" class="text-xs font-semibold uppercase tracking-wide text-gray-400">Off</span>
+                        <span id="dictionary-status-label"
+                            class="text-xs font-semibold uppercase tracking-wide text-gray-400">Off</span>
                     </div>
                 </div>
 
                 <!-- Scoring Controls (Right Column) -->
-                <div id="scoring-controls" class="lg:w-[460px] flex-shrink-0 bg-white p-6 rounded-2xl shadow-lg flex flex-col justify-between">
+                <div id="scoring-controls"
+                    class="lg:w-[460px] flex-shrink-0 bg-white p-6 rounded-2xl shadow-lg flex flex-col justify-between">
                     <div>
-                        <div id="turn-indicator" class="text-center mb-4">
-                            <h2 class="text-2xl font-bold">Player's Turn</h2>
+                        <div id="turn-indicator" class="text-center mb-1">
+                            <h2 class="text-lg font-bold">Player's Turn</h2>
                         </div>
 
                         <!-- Turn Flow Controls -->
                         <div id="turn-flow-container">
-                            <div id="start-prompt" class="text-center p-4 border-2 border-dashed rounded-lg text-gray-500">
-                                <p><strong>Step 1:</strong> Tap a square on the board to place your word.</p>
+                            <div id="start-prompt"
+                                class="text-center p-2 border-2 border-dashed rounded-lg text-gray-500 text-sm">
+                                <p><strong>Step 1:</strong> Tap a square on the board.</p>
                             </div>
 
                             <div id="direction-container" class="hidden text-center">
-                                <label class="block font-medium text-gray-600 mb-2"><strong>Step 2:</strong> Choose Direction</label>
+                                <label class="block font-medium text-gray-600 mb-1 text-sm"><strong>Step 2:</strong>
+                                    Choose
+                                    Direction</label>
                                 <div class="flex rounded-lg border border-gray-300 p-1">
-                                    <button id="dir-across" class="w-1/2 rounded-md py-2 text-sm font-semibold bg-gray-200 text-gray-600">ACROSS</button>
-                                    <button id="dir-down" class="w-1/2 rounded-md py-2 text-sm font-semibold bg-gray-200 text-gray-600">DOWN</button>
+                                    <button id="dir-across"
+                                        class="w-1/2 rounded-md py-1 text-sm font-semibold bg-gray-200 text-gray-600">ACROSS</button>
+                                    <button id="dir-down"
+                                        class="w-1/2 rounded-md py-1 text-sm font-semibold bg-gray-200 text-gray-600">DOWN</button>
                                 </div>
                             </div>
 
                             <div id="word-entry-container" class="hidden">
-                                <label class="block font-medium text-gray-600 mb-2"><strong>Step 3:</strong> Enter Word</label>
+                                <label class="block font-medium text-gray-600 mb-0.5 text-sm"><strong>Step 3:</strong>
+                                    Enter
+                                    Word</label>
 
                                 <!-- Word Input -->
-                                <div class="mb-4">
-                                    <input type="text" id="word-input" class="w-full p-3 border border-gray-300 rounded-lg text-2xl uppercase tracking-widest text-center focus:ring-2 focus:ring-indigo-500" placeholder="SCRABBLE">
+                                <div class="mb-1">
+                                    <input type="text" id="word-input"
+                                        class="w-full p-1.5 border border-gray-300 rounded-lg text-lg uppercase tracking-widest text-center focus:ring-2 focus:ring-indigo-500"
+                                        placeholder="SCRABBLE">
                                 </div>
 
                                 <!-- Tile Display -->
-                                <div id="tile-display-container" class="flex flex-wrap gap-1 justify-center min-h-[50px] bg-gray-100 p-2 rounded-lg mb-4">
+                                <div id="tile-display-container"
+                                    class="flex flex-wrap gap-1 justify-center min-h-[32px] bg-gray-100 p-1 rounded-lg mb-1">
                                     <!-- Tiles will be dynamically generated here -->
                                 </div>
 
@@ -218,24 +295,28 @@
 
                     <div>
                         <!-- Score Breakdown -->
-                        <div id="score-breakdown" class="mb-4 text-sm text-gray-600 space-y-1 p-3 bg-gray-50 rounded-lg min-h-[80px]">
+                        <div id="score-breakdown"
+                            class="mb-2 text-xs text-gray-600 space-y-1 p-2 bg-gray-50 rounded-lg min-h-[40px]">
                             <!-- Breakdown will be injected here -->
                         </div>
 
                         <!-- Turn Score Display -->
-                        <div class="text-center mb-6">
-                            <label class="block text-sm font-medium text-gray-600 mb-1">Total Turn Score</label>
-                            <div id="turn-score" class="text-5xl font-bold text-center text-gray-700 bg-gray-100 py-3 rounded-lg">0</div>
+                        <div class="text-center mb-3">
+                            <label class="block text-xs font-medium text-gray-600 mb-0.5">Total Turn Score</label>
+                            <div id="turn-score"
+                                class="text-3xl font-bold text-center text-gray-700 bg-gray-100 py-2 rounded-lg">0</div>
                         </div>
 
                         <!-- Action Buttons -->
                         <div id="action-buttons-container">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <button id="cancel-turn-btn" class="hidden flex-1 bg-gray-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="cancel-turn-btn"
+                                    class="hidden flex-1 bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
                                     Cancel
                                 </button>
-                                <button id="submit-turn-btn" class="hidden flex-1 bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-[1.01]">
-                                    Submit Turn
+                                <button id="submit-turn-btn"
+                                    class="hidden flex-1 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-[1.01]">
+                                    Submit
                                 </button>
                             </div>
                         </div>
@@ -249,7 +330,8 @@
             <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
                 <h2 class="text-3xl font-bold mb-4 text-gray-900">Game Over!</h2>
                 <div id="final-scores" class="mb-6 space-y-2"></div>
-                <button id="new-game-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition">
+                <button id="new-game-btn"
+                    class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition">
                     Start New Game
                 </button>
             </div>
@@ -257,11 +339,13 @@
 
 
         <!-- Finish Game Modal 1: Select Who Ended the Game -->
-        <div id="finish-game-modal-1" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+        <div id="finish-game-modal-1"
+            class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full max-h-[90vh] flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">Finish Game</h2>
-                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none" aria-label="Close modal" title="Cancel and return to game">&times;</button>
+                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                        aria-label="Close modal" title="Cancel and return to game">&times;</button>
                 </div>
                 <p class="text-gray-600 mb-6">Select the player who went out.</p>
                 <div id="game-ender-list" class="space-y-2 mb-6">
@@ -271,20 +355,22 @@
         </div>
 
         <!-- Finish Game Modal 2: Assign Leftover Tiles -->
-        <div id="finish-game-modal-2" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+        <div id="finish-game-modal-2"
+            class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full max-h-[90vh] flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">Assign Remaining Tiles</h2>
-                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none" aria-label="Close modal" title="Cancel and return to game">&times;</button>
+                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                        aria-label="Close modal" title="Cancel and return to game">&times;</button>
                 </div>
-                
+
                 <div class="bg-gray-50 p-4 rounded-lg mb-4">
                     <p class="text-sm text-gray-600 mb-1">Player Who Finished</p>
                     <p id="game-ender-name" class="text-lg font-bold text-indigo-600"></p>
                 </div>
-                
+
                 <p class="text-gray-600 mb-4">Tap a player to select them, then tap tiles to assign.</p>
-                
+
                 <div class="flex-grow overflow-y-auto">
                     <div id="tile-recipient-list" class="space-y-2 mb-4">
                         <!-- Player cards for tile assignment will be inserted here -->
@@ -292,17 +378,20 @@
 
                     <div class="border-t pt-4 mt-4">
                         <h3 class="text-sm font-semibold text-gray-700 mb-2">Unassigned Tiles</h3>
-                        <div id="leftover-tiles-grid" class="flex flex-wrap gap-2 min-h-[60px] p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <div id="leftover-tiles-grid"
+                            class="flex flex-wrap gap-2 min-h-[60px] p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                             <!-- Unassigned tiles will be inserted here -->
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="flex justify-between mt-6">
-                    <button id="finish-step-2-back" class="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
+                    <button id="finish-step-2-back"
+                        class="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
                         Back
                     </button>
-                    <button id="finish-and-calculate-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition">
+                    <button id="finish-and-calculate-btn"
+                        class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition">
                         Finish & Calculate Scores
                     </button>
                 </div>
@@ -310,17 +399,20 @@
         </div>
 
         <!-- Finish Game Modal 3: Game Over! -->
-        <div id="finish-game-modal-3" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+        <div id="finish-game-modal-3"
+            class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full max-h-[90vh] flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">Game Over!</h2>
-                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none" aria-label="Close modal" title="Close and view finished game">&times;</button>
+                    <button class="close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                        aria-label="Close modal" title="Close and view finished game">&times;</button>
                 </div>
                 <p id="winner-announcement" class="text-gray-600 mb-6"></p>
                 <div id="final-scores-list" class="space-y-2 mb-6">
-                   <!-- Final scores will be inserted here -->
+                    <!-- Final scores will be inserted here -->
                 </div>
-                <button id="restart-game-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition">
+                <button id="restart-game-btn"
+                    class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition">
                     Start New Game
                 </button>
             </div>
@@ -330,20 +422,22 @@
         <div id="word-validation-modal" class="fixed inset-0 hidden z-[9999]">
             <!-- Modal Backdrop -->
             <div class="modal-backdrop"></div>
-            
+
             <!-- Modal Content -->
             <div class="modal-content">
                 <!-- Modal Header -->
                 <div class="modal-header">
                     <h2 class="modal-title">⚠️ Word Validation Warning</h2>
-                    <button class="close-modal-btn close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none" aria-label="Close modal" title="Cancel and return to game">&times;</button>
+                    <button
+                        class="close-modal-btn close-finish-game-modal text-gray-400 hover:text-gray-600 text-3xl leading-none"
+                        aria-label="Close modal" title="Cancel and return to game">&times;</button>
                 </div>
-                
+
                 <!-- Modal Body -->
                 <div class="modal-body">
                     <div id="validation-message" class="validation-message text-gray-700 whitespace-pre-line"></div>
                 </div>
-                
+
                 <!-- Modal Actions -->
                 <div class="modal-actions">
                     <button id="validation-cancel-btn" class="modal-button secondary-button">
@@ -364,7 +458,8 @@
                     <button id="close-stats-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
                 </div>
                 <div class="overflow-y-auto">
-                    <div id="general-stats" class="bg-gray-50 p-4 rounded-lg mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div id="general-stats"
+                        class="bg-gray-50 p-4 rounded-lg mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <!-- General stats will be injected here -->
                     </div>
                     <div id="player-history-container">
@@ -375,11 +470,13 @@
         </div>
 
         <!-- Tile Inventory Modal -->
-        <div id="tile-inventory-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
+        <div id="tile-inventory-modal"
+            class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full max-h-[90vh] flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">Tile Bag</h2>
-                    <button id="close-tile-inventory-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+                    <button id="close-tile-inventory-btn"
+                        class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
                 </div>
                 <div id="tile-inventory-grid" class="grid grid-cols-5 gap-4 overflow-y-auto">
                     <!-- Tiles will be dynamically injected here -->
@@ -392,37 +489,44 @@
             <div class="bg-white rounded-2xl shadow-xl p-6 max-w-xl w-full max-h-[90vh] flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">How to Play</h2>
-                    <button id="close-help-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+                    <button id="close-help-modal-btn"
+                        class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
                 </div>
                 <div id="help-modal-content" class="overflow-y-auto text-gray-700 space-y-4">
                     <h3 class="text-xl font-semibold">Quick Tips:</h3>
                     <ul class="list-disc pl-5 space-y-2">
                         <li>Pause a game at any time and resume it later from history.</li>
-                        <li>Use the menu in the top right to jump to previous games or manage dictionaries.</li>
+                        <li>Use the menu in the top right to jump to previous games.</li>
                         <li>Player suggestions will appear as you type to avoid duplicates.</li>
                         <li>Tap a blank tile in the word entry area to toggle it blank (score 0).</li>
-                        <li>The tile bag icon in the top bar shows remaining tiles. Tap it for a detailed breakdown.</li>
+                        <li>The tile bag icon in the top bar shows remaining tiles. Tap it for a detailed breakdown.
+                        </li>
                     </ul>
 
-                <h3 class="text-xl font-semibold mt-4">Playing a Turn:</h3>
-                <ol class="list-decimal pl-5 space-y-2">
-                    <li><strong>Select a starting square</strong> on the board for your word.</li>
-                    <li><strong>Choose a direction</strong> (ACROSS or DOWN). The word entry box will automatically fill with any existing intersecting letters.</li>
-                    <li><strong>Type your word</strong> into the text box. The score preview and tile display will update in real-time. Tap any empty tile in the tile display to mark it as a blank tile (score 0).</li>
-                    <li>Ensure your word is valid and connected to existing words (after the first turn).</li>
-                    <li>Tap <strong>Submit Turn</strong> to record your score.</li>
-                </ol>
+                    <h3 class="text-xl font-semibold mt-4">Playing a Turn:</h3>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li><strong>Select a starting square</strong> on the board for your word.</li>
+                        <li><strong>Choose a direction</strong> (ACROSS or DOWN). The word entry box will automatically
+                            fill with any existing intersecting letters.</li>
+                        <li><strong>Type your word</strong> into the text box. The score preview and tile display will
+                            update in real-time. Tap any empty tile in the tile display to mark it as a blank tile
+                            (score 0).</li>
+                        <li>Ensure your word is valid and connected to existing words (after the first turn).</li>
+                        <li>Tap <strong>Submit Turn</strong> to record your score.</li>
+                    </ol>
 
                     <h3 class="text-xl font-semibold mt-4">Game Management:</h3>
                     <p>Use the play/pause icon in the top bar to:</p>
                     <ul class="list-disc pl-5 space-y-2">
-                        <li><strong>Pause Game</strong>: Save your current game to resume later from the history screen.</li>
+                        <li><strong>Pause Game</strong>: Save your current game to resume later from the history screen.
+                        </li>
                         <li><strong>Finish Game</strong>: End the current game and declare a winner.</li>
                         <li><strong>Abandon Game</strong>: Delete the current game and all its turns permanently.</li>
                     </ul>
 
                     <h3 class="text-xl font-semibold mt-4">Dictionary Validation:</h3>
-                    <p>Enable dictionary validation on the setup screen or during a game (toggle in the board section) to ensure all submitted words are valid according to the active dictionary.</p>
+                    <p>Enable dictionary validation on the setup screen or during a game (toggle in the board section)
+                        to ensure all submitted words are valid according to the active dictionary.</p>
                 </div>
             </div>
         </div>
@@ -437,11 +541,11 @@
     <script src="/js/validation-pipeline.js"></script>
     <script src="/js/placement-state.js"></script>
     <script src="/js/error-handler.js"></script>
-    
+
     <!-- Phase 3 Components -->
     <script src="/js/premium-tracker.js"></script>
     <script src="/js/tile-validator.js"></script>
-    
+
     <!-- Existing Components -->
     <script src="/js/api.js"></script>
     <script src="/js/game-state.js"></script>
@@ -449,16 +553,20 @@
     <script src="/js/topbar.js"></script>
     <script src="/js/real-time-tile-placement.js"></script>
     <script src="/js/app.js"></script>
-    
-    <!-- New Modular Components -->
-    <script src="/js/modules/UIManager.js"></script>
-    <script src="/js/modules/BoardRenderer.js"></script>
-    <script src="/js/modules/GameController.js"></script>
-    
-    <!-- New Modular Entry Point -->
-    <script src="/js/app-new.js"></script>
-    
+
+    <!-- New Modular Components (Disabled to prevent conflicts with app.js) -->
+    <!-- <script src="/js/modules/UIManager.js"></script> -->
+    <!-- <script src="/js/modules/BoardRenderer.js"></script> -->
+    <!-- <script src="/js/modules/GameController.js"></script> -->
+
+    <!-- Mobile Usability -->
+    <script src="/js/board-zoom.js"></script>
+
+    <!-- New Modular Entry Point (Disabled) -->
+    <!-- <script src="/js/app-new.js"></script> -->
+
     <!-- Phase 2 Architecture Tests (development only) -->
     <script src="/js/architecture-test.js"></script>
 </body>
+
 </html>

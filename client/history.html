@@ -1,56 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game History - Scrabble Keeper</title>
-    
+
     <!-- PWA Meta Tags -->
-    <meta name="description" content="Review previous Scrabble Keeper games, resume paused sessions, or revisit final boards and scores.">
+    <meta name="description"
+        content="Review previous Scrabble Keeper games, resume paused sessions, or revisit final boards and scores.">
     <meta name="theme-color" content="#1f2937">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Scrabble Keeper">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
-    
+
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzJmMzhhZCIvPgo8cGF0aCBkPSJNNyA4SDE1VjE2SDdWOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyA4SDI1VjE2SDE3VjhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNyAxNkgxNVMjMjQiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyAxNkgzNVYyNEgxN1YxNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==">
-    
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzJmMzhhZCIvPgo8cGF0aCBkPSJNNyA4SDE1VjE2SDdWOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyA4SDI1VjE2SDE3VjhaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNyAxNkgxNVMjMjQiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNyAxNkgzNVYyNEgxN1YxNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==">
+
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Custom Styles -->
     <link rel="stylesheet" href="/css/styles.css">
 </head>
+
 <body class="bg-gray-100 text-gray-800 min-h-screen">
     <header class="sticky top-0 z-40 backdrop-blur bg-white/90 border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
             <a href="/" class="text-lg font-semibold text-indigo-600 tracking-tight">Scrabble Keeper</a>
             <div class="relative">
-                <button id="topbar-menu-button" class="w-9 h-9 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-haspopup="true" aria-expanded="false">
+                <button id="topbar-menu-button"
+                    class="w-9 h-9 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    aria-haspopup="true" aria-expanded="false">
                     <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
+                        <path
+                            d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
                     </svg>
                     <span class="sr-only">Open menu</span>
                 </button>
-                <nav id="topbar-menu" class="hidden absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
+                <nav id="topbar-menu"
+                    class="hidden absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
                     <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-xl">
                         New Game
                     </a>
                     <a href="/history.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                         History
                     </a>
-                    <button id="help-menu-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                    <button id="help-menu-btn"
+                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-xl">
                         Help
                     </button>
-                    <a href="/admin.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-xl">
-                        Admin
-                    </a>
                 </nav>
             </div>
         </div>
@@ -65,10 +71,12 @@
                     <p class="text-gray-500 mt-1">Resume paused games or revisit completed matches.</p>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <button id="resume-latest-btn" class="hidden w-full sm:w-auto bg-amber-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-4 focus:ring-amber-200 transition">
+                    <button id="resume-latest-btn"
+                        class="hidden w-full sm:w-auto bg-amber-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-amber-600 focus:outline-none focus:ring-4 focus:ring-amber-200 transition">
                         Resume Latest Paused Game
                     </button>
-                    <button id="refresh-btn" class="w-full sm:w-auto bg-gray-900 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
+                    <button id="refresh-btn"
+                        class="w-full sm:w-auto bg-gray-900 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">
                         Refresh
                     </button>
                 </div>
@@ -85,7 +93,8 @@
         <div id="empty-state" class="hidden bg-white rounded-2xl shadow-lg p-8 text-center">
             <div class="text-6xl mb-4">🎲</div>
             <h2 class="text-2xl font-bold text-gray-700 mb-2">No Games Yet</h2>
-            <p class="text-gray-500 mb-6">You haven't completed any games yet. Start playing to see your game history here!</p>
+            <p class="text-gray-500 mb-6">You haven't completed any games yet. Start playing to see your game history
+                here!</p>
             <a href="/" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition">
                 Start Your First Game
             </a>
@@ -97,7 +106,8 @@
         </div>
 
         <!-- Game Detail Modal -->
-        <div id="game-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div id="game-detail-modal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
             <div class="bg-white rounded-2xl shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
                 <!-- Modal Header -->
                 <div class="flex justify-between items-center p-6 border-b">
@@ -107,7 +117,7 @@
                     </div>
                     <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
                 </div>
-                
+
                 <!-- Modal Content -->
                 <div class="flex-1 overflow-y-auto p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -119,13 +129,17 @@
                             </div>
                             <!-- Board Legend -->
                             <div class="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-gray-600">
-                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm TWS mr-2"></span> Triple Word</div>
-                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm DWS mr-2"></span> Double Word</div>
-                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm TLS mr-2"></span> Triple Letter</div>
-                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm DLS mr-2"></span> Double Letter</div>
+                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm TWS mr-2"></span> Triple
+                                    Word</div>
+                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm DWS mr-2"></span> Double
+                                    Word</div>
+                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm TLS mr-2"></span> Triple
+                                    Letter</div>
+                                <div class="flex items-center"><span class="w-4 h-4 rounded-sm DLS mr-2"></span> Double
+                                    Letter</div>
                             </div>
                         </div>
-                        
+
                         <!-- Game Stats and Turn History -->
                         <div>
                             <!-- Final Scores -->
@@ -135,7 +149,7 @@
                                     <!-- Player scores will be inserted here -->
                                 </div>
                             </div>
-                            
+
                             <!-- Turn History -->
                             <div class="bg-gray-50 p-4 rounded-xl">
                                 <h3 class="text-lg font-bold mb-4">Turn History</h3>
@@ -161,7 +175,7 @@
                 <h3 class="text-xl font-semibold">Quick Tips:</h3>
                 <ul class="list-disc pl-5 space-y-2">
                     <li>Pause a game at any time and resume it later from history.</li>
-                    <li>Use the menu in the top right to jump to previous games or manage dictionaries.</li>
+                    <li>Use the menu in the top right to jump to previous games.</li>
                     <li>Player suggestions will appear as you type to avoid duplicates.</li>
                     <li>Tap a blank tile in the word entry area to toggle it blank (score 0).</li>
                     <li>The tile bag icon in the top bar shows remaining tiles. Tap it for a detailed breakdown.</li>
@@ -170,8 +184,11 @@
                 <h3 class="text-xl font-semibold mt-4">Playing a Turn:</h3>
                 <ol class="list-decimal pl-5 space-y-2">
                     <li><strong>Select a starting square</strong> on the board for your word.</li>
-                    <li><strong>Choose a direction</strong> (ACROSS or DOWN). The word entry box will automatically fill with any existing intersecting letters.</li>
-                    <li><strong>Type your word</strong> into the text box. The score preview and tile display will update in real-time. Tap any empty tile in the tile display to mark it as a blank tile (score 0).</li>
+                    <li><strong>Choose a direction</strong> (ACROSS or DOWN). The word entry box will automatically fill
+                        with any existing intersecting letters.</li>
+                    <li><strong>Type your word</strong> into the text box. The score preview and tile display will
+                        update in real-time. Tap any empty tile in the tile display to mark it as a blank tile (score
+                        0).</li>
                     <li>Ensure your word is valid and connected to existing words (after the first turn).</li>
                     <li>Tap <strong>Submit Turn</strong> to record your score.</li>
                 </ol>
@@ -179,13 +196,15 @@
                 <h3 class="text-xl font-semibold mt-4">Game Management:</h3>
                 <p>Use the play/pause icon in the top bar to:</p>
                 <ul class="list-disc pl-5 space-y-2">
-                    <li><strong>Pause Game</strong>: Save your current game to resume later from the history screen.</li>
+                    <li><strong>Pause Game</strong>: Save your current game to resume later from the history screen.
+                    </li>
                     <li><strong>Finish Game</strong>: End the current game and declare a winner.</li>
                     <li><strong>Abandon Game</strong>: Delete the current game and all its turns permanently.</li>
                 </ul>
 
                 <h3 class="text-xl font-semibold mt-4">Dictionary Validation:</h3>
-                <p>Enable dictionary validation on the setup screen or during a game (toggle in the board section) to ensure all submitted words are valid according to the active dictionary.</p>
+                <p>Enable dictionary validation on the setup screen or during a game (toggle in the board section) to
+                    ensure all submitted words are valid according to the active dictionary.</p>
             </div>
         </div>
     </div>
@@ -195,4 +214,5 @@
     <script src="/js/topbar.js"></script>
     <script src="/js/history.js"></script>
 </body>
+
 </html>

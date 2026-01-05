@@ -14,7 +14,7 @@ class RealTimeTilePlacement {
         this.startRow = null;
         this.startCol = null;
         this.direction = null;
-        
+
         // Bind methods to maintain context
         this.updateTiles = this.updateTiles.bind(this);
         this.clearTiles = this.clearTiles.bind(this);
@@ -54,20 +54,20 @@ class RealTimeTilePlacement {
         console.log('Real-Time Tile Placement: Stopping placement - comprehensive cleanup');
         this.isActive = false;
         this.currentWord = '';
-        
+
         // Phase 1 Fix: Enhanced cleanup with validation
         try {
             this.clearTiles();
-            
+
             // Reset all state variables
             this.startRow = null;
             this.startCol = null;
             this.direction = null;
-            
+
             // Clear any remaining references
             this.currentTiles.clear();
             this.previewTiles.clear();
-            
+
             console.log('Real-Time Tile Placement: Cleanup completed successfully');
         } catch (error) {
             console.error('Real-Time Tile Placement: Error during cleanup:', error);
@@ -83,7 +83,7 @@ class RealTimeTilePlacement {
      */
     handleWordInput(word) {
         if (!this.isActive) return;
-        
+
         this.currentWord = word.toUpperCase().replace(/[^A-Z]/g, '');
         console.log('Real-Time Tile Placement: Updating word to', this.currentWord);
         this.updateTiles(this.currentWord);
@@ -95,22 +95,22 @@ class RealTimeTilePlacement {
      */
     updateTiles(word = this.currentWord) {
         if (!this.isActive) return;
-        
+
         // Clear previous preview tiles
         this.clearPreviewTiles();
-        
+
         // Create tile elements for each letter in the word
         for (let i = 0; i < word.length; i++) {
             const letter = word[i];
             const row = this.direction === 'across' ? this.startRow : this.startRow + i;
             const col = this.direction === 'across' ? this.startCol + i : this.startCol;
-            
+
             // Skip if we're off the board
             if (row >= 15 || col >= 15) continue;
-            
+
             // Check if there's an existing tile at this position
             const existingTile = this.gameState.boardState[row][col];
-            
+
             if (existingTile) {
                 // If the letters match exactly, don't show a real-time tile at all
                 // If there's a conflict, show the conflict tile
@@ -130,7 +130,8 @@ class RealTimeTilePlacement {
                 }
             } else {
                 // Show new tile preview
-                this.createOrUpdateTile(row, col, letter, false, false, false, letter);
+                const isBlank = this.gameState.blankTileIndices.has(i);
+                this.createOrUpdateTile(row, col, letter, isBlank, false, false, letter);
             }
         }
     }
@@ -148,20 +149,20 @@ class RealTimeTilePlacement {
     createOrUpdateTile(row, col, letter, isBlank, isExisting, isConflict, originalLetter) {
         const cell = this.boardContainer.querySelector(`[data-row="${row}"][data-col="${col}"]`);
         if (!cell) return;
-        
+
         const tileKey = `${row}-${col}`;
-        
+
         // Remove any existing preview tile at this position
         const existingPreview = this.previewTiles.get(tileKey);
         if (existingPreview) {
             cell.removeChild(existingPreview);
             this.previewTiles.delete(tileKey);
         }
-        
+
         // Create tile element
         const tileElement = document.createElement('div');
         tileElement.className = 'real-time-tile';
-        
+
         // Determine tile class based on state
         if (isConflict) {
             tileElement.classList.add('tile-conflict');
@@ -171,29 +172,29 @@ class RealTimeTilePlacement {
         } else {
             tileElement.classList.add('tile-preview');
         }
-        
+
         // Add blank tile class if needed
         if (isBlank) {
             tileElement.classList.add('tile-blank');
         }
-        
+
         // Create letter span
         const letterSpan = document.createElement('span');
         letterSpan.className = 'tile-letter';
-        letterSpan.textContent = isBlank ? 'BLANK' : letter;
-        
+        letterSpan.textContent = letter;
+
         // Create score span
         const scoreSpan = document.createElement('span');
         scoreSpan.className = 'tile-score';
         scoreSpan.textContent = isBlank ? 0 : (this.gameState.letterScores[letter] || 0);
-        
+
         tileElement.appendChild(letterSpan);
         tileElement.appendChild(scoreSpan);
-        
+
         // Add to cell and track it
         cell.appendChild(tileElement);
         this.previewTiles.set(tileKey, tileElement);
-        
+
         // Store tile info for reference
         this.currentTiles.set(tileKey, {
             letter,
@@ -282,19 +283,19 @@ class RealTimeTilePlacement {
     validateCleanup() {
         const hasActiveTiles = this.previewTiles.size > 0 || this.currentTiles.size > 0;
         const hasActiveState = this.isActive;
-        
+
         if (hasActiveTiles || hasActiveState) {
             console.warn('Real-Time Tile Placement: Incomplete cleanup detected', {
                 activeTiles: this.previewTiles.size,
                 currentTiles: this.currentTiles.size,
                 isActive: this.isActive
             });
-            
+
             // Force cleanup
             this.stopPlacement();
             return false;
         }
-        
+
         return true;
     }
 }

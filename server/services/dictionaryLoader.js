@@ -8,8 +8,31 @@ let currentDictionary = {
     loaded: false
 };
 
-function loadDictionaryForLocale(locale) {
+async function loadDictionaryForLocale(locale) {
     try {
+        // Prefer the bundled dictionary-en-au package for AU locale
+        if (locale === 'en_AU' || locale === 'en_au') {
+            try {
+                // Dynamically import to avoid issues if not installed yet
+                const en_AU = await import('dictionary-en-au');
+                // dictionary-en-au v3 exports { aff, dic } as named exports or default object properties
+                const aff = en_AU.aff || (en_AU.default && en_AU.default.aff);
+                const dic = en_AU.dic || (en_AU.default && en_AU.default.dic);
+
+                if (!aff || !dic) {
+                    throw new Error('Package exports missing aff/dic');
+                }
+
+                const spell = nspell(aff, dic);
+
+                currentDictionary = { locale: 'en_AU', spell, loaded: true };
+                console.log(`📚 Bundled dictionary-en-au loaded successfully`);
+                return currentDictionary;
+            } catch (pkgError) {
+                console.warn('Failed to load bundled dictionary-en-au package, falling back to file system:', pkgError.message);
+            }
+        }
+
         const { affPath, dicPath } = dictionaryManager.getDictionaryPaths(locale);
 
         if (!fs.existsSync(affPath) || !fs.existsSync(dicPath)) {
@@ -32,19 +55,19 @@ function loadDictionaryForLocale(locale) {
     }
 }
 
-function loadActiveDictionary() {
+async function loadActiveDictionary() {
     const activeLocale = dictionaryManager.getActiveLocale();
     return loadDictionaryForLocale(activeLocale);
 }
 
 function getSpellChecker() {
-    if (currentDictionary.loaded && currentDictionary.locale === dictionaryManager.getActiveLocale()) {
-        return currentDictionary;
-    }
-    return loadActiveDictionary();
+    // Return current state synchronously
+    // If loading is in progress, this might return loaded: false
+    // detailed loading state could be added if needed
+    return currentDictionary;
 }
 
-function reloadDictionary(locale) {
+async function reloadDictionary(locale) {
     if (locale) {
         return loadDictionaryForLocale(locale);
     }

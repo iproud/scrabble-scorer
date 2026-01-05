@@ -3,7 +3,7 @@ class GameHistoryApp {
     constructor() {
         this.games = [];
         this.currentGame = null;
-        
+
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.init());
@@ -14,16 +14,16 @@ class GameHistoryApp {
 
     async init() {
         console.log('Game History: Initializing...');
-        
+
         // Get DOM elements
         this.setupElements();
-        
+
         // Setup event listeners
         this.setupEventListeners();
-        
+
         // Load games
         await this.loadGames();
-        
+
         console.log('Game History: Initialization complete');
     }
 
@@ -32,11 +32,11 @@ class GameHistoryApp {
         this.loadingState = document.getElementById('loading-state');
         this.emptyState = document.getElementById('empty-state');
         this.gamesList = document.getElementById('games-list');
-        
+
         // Buttons
         this.refreshBtn = document.getElementById('refresh-btn');
         this.resumeLatestBtn = document.getElementById('resume-latest-btn');
-        
+
         // Modal elements
         this.gameDetailModal = document.getElementById('game-detail-modal');
         this.closeModalBtn = document.getElementById('close-modal-btn');
@@ -53,7 +53,7 @@ class GameHistoryApp {
         if (this.resumeLatestBtn) {
             this.resumeLatestBtn.addEventListener('click', () => this.resumeLatestPausedGame());
         }
-        
+
         // Modal close
         this.closeModalBtn.addEventListener('click', () => this.closeModal());
         this.gameDetailModal.addEventListener('click', (e) => {
@@ -61,7 +61,7 @@ class GameHistoryApp {
                 this.closeModal();
             }
         });
-        
+
         // Escape key to close modal
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && !this.gameDetailModal.classList.contains('hidden')) {
@@ -73,17 +73,17 @@ class GameHistoryApp {
     async loadGames() {
         try {
             this.showLoading();
-            
+
             // Fetch completed games from API
             const games = await window.scrabbleAPI.getGames();
             this.games = games;
-            
+
             if (games.length === 0) {
                 this.showEmptyState();
             } else {
                 this.renderGamesList();
             }
-            
+
             this.updateResumeButtonVisibility();
         } catch (error) {
             console.error('Failed to load games:', error);
@@ -107,9 +107,9 @@ class GameHistoryApp {
         this.loadingState.classList.add('hidden');
         this.emptyState.classList.add('hidden');
         this.gamesList.classList.remove('hidden');
-        
+
         this.gamesList.innerHTML = this.games.map(game => this.createGameCard(game)).join('');
-        
+
         // Add click listeners to game cards
         this.gamesList.querySelectorAll('.game-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -256,16 +256,16 @@ class GameHistoryApp {
         // Update modal header
         const date = new Date(game.created_at).toLocaleDateString();
         const time = new Date(game.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
+
         this.modalTitle.textContent = `Game #${game.id}`;
         this.modalSubtitle.textContent = `Played on ${date} at ${time}`;
-        
+
         // Render final board
         this.renderBoard(game.board_state || []);
-        
+
         // Render final scores
         this.renderScores(game.players || []);
-        
+
         // Render turn history
         this.renderTurnHistory(game.turns || []);
     }
@@ -294,12 +294,12 @@ class GameHistoryApp {
         this.modalBoard.innerHTML = '';
         this.modalBoard.className = 'grid grid-cols-15 gap-1 aspect-square w-full bg-gray-800 p-2 rounded-lg';
         this.modalBoard.style.gridTemplateColumns = 'repeat(15, 1fr)';
-        
+
         boardLayout.forEach((row, r_idx) => {
             row.forEach((bonus, c_idx) => {
                 const cell = document.createElement('div');
                 cell.classList.add('board-cell', 'flex', 'items-center', 'justify-center', 'text-xs', 'font-bold', 'relative');
-                
+
                 const placedTile = boardState[r_idx] && boardState[r_idx][c_idx];
 
                 if (placedTile) {
@@ -319,12 +319,12 @@ class GameHistoryApp {
     renderScores(players) {
         const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
         const winnerScore = sortedPlayers[0]?.score || 0;
-        
+
         this.modalScores.innerHTML = sortedPlayers.map((player, index) => {
             const isWinner = player.score === winnerScore && winnerScore > 0;
             const position = index + 1;
             const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : `${position}.`;
-            
+
             return `
                 <div class="flex items-center justify-between p-3 rounded-lg ${isWinner ? 'bg-yellow-100 border-2 border-yellow-300' : 'bg-white border border-gray-200'}">
                     <div class="flex items-center gap-3">
@@ -354,20 +354,20 @@ class GameHistoryApp {
         });
 
         const rounds = Object.keys(turnsByRound).sort((a, b) => parseInt(a) - parseInt(b));
-        
+
         this.modalTurnHistory.innerHTML = rounds.map(roundNum => {
             const roundTurns = turnsByRound[roundNum];
-            
+
             return `
                 <div class="mb-4">
                     <h4 class="font-bold text-gray-700 mb-2 sticky top-0 bg-gray-50 py-1">Round ${roundNum}</h4>
                     <div class="space-y-2">
                         ${roundTurns.map(turn => {
-                            const secondaryWords = turn.secondary_words ? JSON.parse(turn.secondary_words) : [];
-                            const crossWordsText = secondaryWords.length > 0 ? 
-                                ` <span class="text-xs text-gray-400">(+ ${secondaryWords.map(sw => sw.word).join(', ')})</span>` : '';
-                            
-                            return `
+                const secondaryWords = turn.secondary_words ? JSON.parse(turn.secondary_words) : [];
+                const crossWordsText = secondaryWords.length > 0 ?
+                    ` <span class="text-xs text-gray-400">(+ ${secondaryWords.map(sw => sw.word).join(', ')})</span>` : '';
+
+                return `
                                 <div class="flex items-center justify-between p-2 bg-white rounded border">
                                     <div>
                                         <span class="font-medium text-gray-800">${turn.player_name}</span>
@@ -377,7 +377,7 @@ class GameHistoryApp {
                                     <span class="font-bold text-green-600">${turn.score}</span>
                                 </div>
                             `;
-                        }).join('')}
+            }).join('')}
                     </div>
                 </div>
             `;
@@ -391,14 +391,14 @@ class GameHistoryApp {
 
     async deleteGame(gameId, event) {
         event.stopPropagation(); // Prevent card click
-        
+
         const game = this.games.find(g => g.id === gameId);
         if (!game) return;
-        
+
         const confirmed = confirm(`Are you sure you want to delete Game #${gameId}?\n\nThis action cannot be undone and will permanently remove all game data including:\n• Player scores\n• Turn history\n• Board state\n\nPlayers: ${game.player_names}`);
-        
+
         if (!confirmed) return;
-        
+
         try {
             await window.scrabbleAPI.deleteGame(gameId);
             this.showSuccess('Game deleted successfully');
@@ -421,23 +421,17 @@ class GameHistoryApp {
 
     async reinstateGame(gameId, event) {
         event?.stopPropagation();
-        
+
         const game = this.games.find(g => g.id === gameId);
         if (!game) return;
-        
-        const confirmed = confirm(`Resume Game #${gameId}?\n\nThis will reactivate the game so you can continue playing.\n\nPlayers: ${game.player_names}`);
-        
-        if (!confirmed) return;
-        
+
+
         try {
+            this.showLoading(); // Add loading feedback
+
             await window.scrabbleAPI.reinstateGame(gameId);
-            this.showSuccess('Game reactivated! Redirecting to continue playing...');
-            
-            // Redirect to the game
-            setTimeout(() => {
-                window.location.href = `/?game=${gameId}`;
-            }, 1500);
-            
+            window.location.href = `/?game=${gameId}`;
+
         } catch (error) {
             console.error('Failed to reinstate game:', error);
             this.showError('Failed to reactivate game. Please try again.');
